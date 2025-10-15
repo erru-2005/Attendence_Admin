@@ -35,11 +35,11 @@
                 <div class="h-0.5 bg-slate-200 my-1 mx-auto md:mx-0 w-11/12 md:w-full"></div>
                 <p class="text-xs sm:text-sm text-slate-600">A Unit of Coondapur Education Society (R)</p>
             </div>
-            <div class="md:ml-auto flex justify-center md:justify-end w-full md:w-auto mt-2 md:mt-0">
-                <a href="{{ url_for('logout') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-rose-600 text-white shadow hover:opacity-95">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M15.75 3A2.25 2.25 0 0 1 18 5.25v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 0-.75-.75h-9a.75.75 0 0 0-.75.75v13.5c0 .414.336.75.75.75h9a.75.75 0 0 0 .75-.75v-2.5a.75.75 0 0 1 1.5 0v2.5A2.25 2.25 0 0 1 15.75 21h-9A2.25 2.25 0 0 1 4.5 18.75V5.25A2.25 2.25 0 0 1 6.75 3h9z"/><path d="M15.53 12.53a.75.75 0 0 1 0-1.06l2.72-2.72a.75.75 0 1 1 1.06 1.06l-1.39 1.39H10.5a.75.75 0 0 1 0-1.5h7.41l-1.39-1.39a.75.75 0 0 1 1.06-1.06l2.72 2.72a2.25 2.25 0 0 1 0 3.18l-2.72 2.72a.75.75 0 1 1-1.06-1.06l1.39-1.39H10.5a.75.75 0 0 1 0-1.5h7.41l-1.39 1.39a.75.75 0 0 1-1.06 0z"/></svg>
-                    Logout
-                </a>
+            <div class="ml-auto flex justify-end w-full md:w-auto mt-2 md:mt-0 self-end">
+                <div class="flex items-end gap-4 text-xs sm:text-sm">
+                    <span class="text-slate-600 hidden sm:inline">Welcome, admin</span>
+                    <a href="{{ url_for('logout') }}" class="text-rose-600 hover:text-rose-700 font-medium">Logout</a>
+                </div>
             </div>
         </div>
     </header>
@@ -47,7 +47,7 @@
     <main class="max-w-7xl mx-auto px-4 mt-8">
         <section class="text-center">
             <h2 class="text-4xl sm:text-5xl font-extrabold bg-gradient-to-r from-brand-700 to-indigo-500 bg-clip-text text-transparent">Graahi</h2>
-            <p class="mt-2 text-base sm:text-lg text-slate-600 font-bold">Effortless Attendance. Endless Accuracy</p>
+            <p class="mt-2 text-base sm:text-lg text-slate-600 font-bold">YOUR PRESENCE, OUR PRIORITY</p>
         </section>
 
         <section class="mt-8 bg-white border border-slate-200 rounded-xl shadow-sm">
@@ -59,22 +59,37 @@
                 <div class="flex items-center gap-3">
                     <label for="datePicker" class="text-sm text-slate-600">Select date</label>
                     <input id="datePicker" type="date" class="px-3 py-2 rounded-md border border-slate-300 text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-brand-600" />
-                    <button id="refreshBtn" class="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-gradient-to-r from-brand-700 to-indigo-600 text-white shadow hover:opacity-95">
+                    <button id="refreshBtn" class="inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-md bg-gradient-to-r from-brand-700 to-indigo-600 text-white shadow hover:opacity-95" aria-label="Refresh" title="Refresh">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M12 6v3l-4-4 4-4v3a8 8 0 1 1-7.446 4.97.75.75 0 1 1 1.392-.56A6.5 6.5 0 1 0 12 6z"/></svg>
-                        Refresh
-                    </button>
-                    <button id="exportExcelBtn" class="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-emerald-600 text-white shadow hover:opacity-95">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M4.5 3A1.5 1.5 0 0 0 3 4.5v15A1.5 1.5 0 0 0 4.5 21h15a1.5 1.5 0 0 0 1.5-1.5v-15A1.5 1.5 0 0 0 19.5 3h-15zm3.28 4.47 2.47 3.53 2.47-3.53h2.06l-3.28 4.67 3.28 4.66h-2.06l-2.47-3.52-2.47 3.52H5.72l3.28-4.66L5.72 7.47h2.06z"/></svg>
-                        Export Excel
-                    </button>
-                    <button id="exportPdfBtn" class="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-rose-600 text-white shadow hover:opacity-95">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M6 2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h7l5-5V4a2 2 0 0 0-2-2H6zm9 14h4l-4 4v-4zM7 6h10v2H7V6zm0 4h10v2H7v-2zm0 4h6v2H7v-2z"/></svg>
-                        Export PDF
+                        <span class="hidden sm:inline">Refresh</span>
                     </button>
                 </div>
             </div>
+            <!-- Search bar positioned directly under the section title -->
+            <div class="px-4 sm:px-6 pb-2">
+                <div class="max-w-xl">
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-5 h-5"><circle cx="11" cy="11" r="7"/><path d="M21 21l-3.6-3.6"/></svg>
+                        </span>
+                        <input id="searchInput" type="text" placeholder="Search by Faculty ID, Name, or time..." class="w-full pl-9 pr-3 py-2 rounded-md border border-slate-300 text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-brand-600" />
+                    </div>
+                </div>
+            </div>
             <div class="px-4 sm:px-6 pb-6">
-                <div class="mb-3 text-sm text-slate-600">Showing data for <span id="selectedDateLabel" class="font-medium text-slate-900"></span></div>
+                <div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div class="text-sm text-slate-600">Showing data for <span id="selectedDateLabel" class="font-medium text-slate-900"></span></div>
+                    <div class="flex items-center gap-2 sm:justify-end">
+                        <button id="exportExcelBtn" class="inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-md bg-emerald-600 text-white shadow hover:opacity-95">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M4.5 3A1.5 1.5 0 0 0 3 4.5v15A1.5 1.5 0 0 0 4.5 21h15a1.5 1.5 0 0 0 1.5-1.5v-15A1.5 1.5 0 0 0 19.5 3h-15zm3.28 4.47 2.47 3.53 2.47-3.53h2.06l-3.28 4.67 3.28 4.66h-2.06l-2.47-3.52-2.47 3.52H5.72l3.28-4.66L5.72 7.47h2.06z"/></svg>
+                            Export Excel
+                        </button>
+                        <button id="exportPdfBtn" class="inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-md bg-rose-600 text-white shadow hover:opacity-95">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M6 2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h7l5-5V4a2 2 0 0 0-2-2H6zm9 14h4l-4 4v-4zM7 6h10v2H7V6zm0 4h10v2H7v-2zm0 4h6v2H7v-2z"/></svg>
+                            Export PDF
+                        </button>
+                    </div>
+                </div>
                 <div class="overflow-x-auto rounded-lg border border-slate-200">
                     <table id="attendanceTable" class="min-w-full divide-y divide-slate-200">
                         <thead class="bg-slate-50">
@@ -112,6 +127,10 @@
         const refreshBtn = document.getElementById('refreshBtn');
         const exportExcelBtn = document.getElementById('exportExcelBtn');
         const exportPdfBtn = document.getElementById('exportPdfBtn');
+        const searchInput = document.getElementById('searchInput');
+
+        // Local cache for faster client-side filtering
+        let cachedRows = [];
 
         function formatYMD(date) {
             const y = date.getFullYear();
@@ -151,33 +170,38 @@
                         return aId.localeCompare(bId, undefined, { numeric: true, sensitivity: 'base' });
                     });
                 }
+                cachedRows = rows;
                 if (!Array.isArray(rows) || rows.length === 0) {
                     tableBody.innerHTML = '<tr><td colspan="4" class="text-center text-gray">No records</td></tr>';
                     return;
                 }
-                tableBody.innerHTML = '';
-                for (const r of rows) {
-                    const tr = document.createElement('tr');
-                    const tdId = document.createElement('td');
-                    const tdName = document.createElement('td');
-                    const tdIn = document.createElement('td');
-                    const tdOut = document.createElement('td');
-                    tdId.className = 'px-4 py-3 whitespace-nowrap text-slate-800';
-                    tdName.className = 'px-4 py-3 break-words text-slate-800';
-                    tdIn.className = 'px-4 py-3 whitespace-nowrap text-slate-800';
-                    tdOut.className = 'px-4 py-3 whitespace-nowrap text-slate-800';
-                    tdId.textContent = r.student_id || '';
-                    tdName.textContent = r.name || '';
-                    tdIn.textContent = toReadable(r.checkin);
-                    tdOut.textContent = toReadable(r.checkout);
-                    tr.appendChild(tdId);
-                    tr.appendChild(tdName);
-                    tr.appendChild(tdIn);
-                    tr.appendChild(tdOut);
-                    tableBody.appendChild(tr);
-                }
+                renderTable(rows);
             } catch (err) {
                 tableBody.innerHTML = `<tr><td colspan="4" class="text-center" style="color:#b91c1c">${err.message}</td></tr>`;
+            }
+        }
+
+        function renderTable(rows) {
+            tableBody.innerHTML = '';
+            for (const r of rows) {
+                const tr = document.createElement('tr');
+                const tdId = document.createElement('td');
+                const tdName = document.createElement('td');
+                const tdIn = document.createElement('td');
+                const tdOut = document.createElement('td');
+                tdId.className = 'px-4 py-3 whitespace-nowrap text-slate-800';
+                tdName.className = 'px-4 py-3 break-words text-slate-800';
+                tdIn.className = 'px-4 py-3 whitespace-nowrap text-slate-800';
+                tdOut.className = 'px-4 py-3 whitespace-nowrap text-slate-800';
+                tdId.textContent = r.student_id || '';
+                tdName.textContent = r.name || '';
+                tdIn.textContent = toReadable(r.checkin);
+                tdOut.textContent = toReadable(r.checkout);
+                tr.appendChild(tdId);
+                tr.appendChild(tdName);
+                tr.appendChild(tdIn);
+                tr.appendChild(tdOut);
+                tableBody.appendChild(tr);
             }
         }
 
@@ -189,8 +213,21 @@
         datePicker.addEventListener('change', () => loadAttendance(datePicker.value));
         refreshBtn.addEventListener('click', () => loadAttendance(datePicker.value));
 
-        // Optional: light polling every 10s to reflect file changes without affecting writers
-        setInterval(() => loadAttendance(datePicker.value), 10000);
+        // Real-time client-side filtering
+        function applyFilter() {
+            const q = (searchInput.value || '').toLowerCase().trim();
+            if (!q) { renderTable(cachedRows); return; }
+            const filtered = (cachedRows || []).filter(r => {
+                const id = (r.student_id || '').toString().toLowerCase();
+                const name = (r.name || '').toLowerCase();
+                // Exclude check-in/check-out from matching per request
+                return id.includes(q) || name.includes(q);
+            });
+            renderTable(filtered);
+        }
+        if (searchInput) searchInput.addEventListener('input', applyFilter);
+
+
 
         function exportTableToExcel() {
             const table = document.getElementById('attendanceTable');

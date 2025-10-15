@@ -15,7 +15,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 
 
 # Configure via environment variable or default path; can be overridden at runtime by querystring
-ATTENDANCE_DIR = os.environ.get("ATTENDANCE_DIR", r"E:\database_attendence_graahi\database\attendance")
+ATTENDANCE_DIR = os.environ.get("ATTENDANCE_DIR", r"E:\\attendence_filter\\database\\attendance")
 
 
 def get_attendance_dir() -> Path:
