@@ -29,12 +29,9 @@
         <div class="absolute inset-0 bg-hero"></div>
         <div class="relative z-10 w-full max-w-md mx-auto px-6">
             <div class="bg-white/90 backdrop-blur rounded-2xl shadow-xl border border-slate-200 p-8">
-                <div class="flex items-center gap-3 mb-6">
-                    <img src="{{ url_for('static', filename='images/logo-removebg-preview.png') }}" alt="Logo" class="h-12 w-12 object-contain" />
-                    <div>
-                        <h1 class="text-xl font-bold text-slate-900">Dr. B. B. Hegde College</h1>
-                        <p class="text-xs text-slate-500">Admin Portal – Graahi</p>
-                    </div>
+                <div class="mb-6 text-center">
+                    <h1 class="mt-1 text-2xl sm:text-3xl font-extrabold text-purple-700">Graahi</h1>
+                    <p class="text-[11px] text-slate-600 font-bold tracking-wide uppercase">Your Presence, Our Priority</p>
                 </div>
                 {% if error %}
                 <div class="mb-4 px-3 py-2 rounded-md bg-rose-50 text-rose-700 border border-rose-200 text-sm">{{ error }}</div>
@@ -53,10 +50,9 @@
                         Sign in
                     </button>
                 </form>
-                <p class="mt-4 text-xs text-slate-500 text-center">Use username <span class="font-semibold">bbhcadmin</span> and password <span class="font-semibold">123456</span></p>
             </div>
             <div class="mt-6 text-center">
-                <a href="https://incubation-center" class="text-xs text-slate-500">© 2025 Incubation Center</a>
+                <div class="text-sm sm:text-base text-slate-600 font-bold">© 2025 Moulya | Developed by Incubation Center | All Rights Reserved.</div>
             </div>
         </div>
     </div>
