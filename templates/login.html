@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Login – Graahi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50:'#eef2ff',100:'#e0e7ff',600:'#4338ca',700:'#3730a3' }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="icon" href="{{ url_for('static', filename='images/logo.png') }}" />
+    <style>
+        .bg-hero {
+            background-image: radial-gradient(ellipse at top left, rgba(67,56,202,0.2), transparent 60%),
+                              radial-gradient(ellipse at bottom right, rgba(99,102,241,0.25), transparent 55%);
+        }
+    </style>
+    </head>
+<body class="min-h-screen bg-slate-50">
+    <div class="relative min-h-screen flex items-center justify-center overflow-hidden">
+        <div class="absolute inset-0 bg-hero"></div>
+        <div class="relative z-10 w-full max-w-md mx-auto px-6">
+            <div class="bg-white/90 backdrop-blur rounded-2xl shadow-xl border border-slate-200 p-8">
+                <div class="flex items-center gap-3 mb-6">
+                    <img src="{{ url_for('static', filename='images/logo-removebg-preview.png') }}" alt="Logo" class="h-12 w-12 object-contain" />
+                    <div>
+                        <h1 class="text-xl font-bold text-slate-900">Dr. B. B. Hegde College</h1>
+                        <p class="text-xs text-slate-500">Admin Portal – Graahi</p>
+                    </div>
+                </div>
+                {% if error %}
+                <div class="mb-4 px-3 py-2 rounded-md bg-rose-50 text-rose-700 border border-rose-200 text-sm">{{ error }}</div>
+                {% endif %}
+                <form action="{{ url_for('login') }}" method="post" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Username</label>
+                        <input type="text" name="username" placeholder="Enter username" required class="w-full px-4 py-2 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-brand-600 text-slate-800" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Password</label>
+                        <input type="password" name="password" placeholder="Enter password" required class="w-full px-4 py-2 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-brand-600 text-slate-800" />
+                    </div>
+                    <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-md bg-gradient-to-r from-brand-700 to-indigo-600 text-white shadow hover:opacity-95">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M12 1.75a4.25 4.25 0 0 0-4.25 4.25v2a.75.75 0 0 0 1.5 0v-2a2.75 2.75 0 1 1 5.5 0v2a.75.75 0 0 0 1.5 0v-2A4.25 4.25 0 0 0 12 1.75z"/><path d="M5.5 9.5A2.5 2.5 0 0 0 3 12v6.25A2.75 2.75 0 0 0 5.75 21h12.5A2.75 2.75 0 0 0 21 18.25V12a2.5 2.5 0 0 0-2.5-2.5h-13z"/></svg>
+                        Sign in
+                    </button>
+                </form>
+                <p class="mt-4 text-xs text-slate-500 text-center">Use username <span class="font-semibold">bbhcadmin</span> and password <span class="font-semibold">123456</span></p>
+            </div>
+            <div class="mt-6 text-center">
+                <a href="https://incubation-center" class="text-xs text-slate-500">© 2025 Incubation Center</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+
+

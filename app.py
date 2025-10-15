@@ -6,14 +6,16 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Any
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, redirect, url_for, session
 
 
 app = Flask(__name__)
+# Simple secret key for session management; replace via ENV in production
+app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 
 
 # Configure via environment variable or default path; can be overridden at runtime by querystring
-ATTENDANCE_DIR = os.environ.get("ATTENDANCE_DIR", r"G:\\database\\attendance")
+ATTENDANCE_DIR = os.environ.get("ATTENDANCE_DIR", r"E:\database_attendence_graahi\database\attendance")
 
 
 def get_attendance_dir() -> Path:
@@ -45,13 +47,41 @@ def read_attendance_for_date(base_dir: Path, date_str: str) -> List[Dict[str, An
         return []
 
 
+def is_logged_in() -> bool:
+    return bool(session.get("logged_in"))
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "")
+        if username == "bbhcadmin" and password == "123456":
+            session["logged_in"] = True
+            return redirect(url_for("index"))
+        return render_template("login.html", error="Invalid username or password")
+    if is_logged_in():
+        return redirect(url_for("index"))
+    return render_template("login.html")
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
+
+
 @app.route("/")
 def index():
+    if not is_logged_in():
+        return redirect(url_for("login"))
     return render_template("index.html")
 
 
 @app.route("/api/attendance")
 def api_attendance():
+    if not is_logged_in():
+        return redirect(url_for("login"))
     # Use current date by default
     date_str = request.args.get("date")
     if not date_str:

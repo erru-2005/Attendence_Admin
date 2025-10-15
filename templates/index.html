@@ -19,6 +19,10 @@
             }
         }
     </script>
+    <!-- Export libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body class="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100">
     <header class="bg-white/90 backdrop-blur border-b border-slate-200">
@@ -30,6 +34,12 @@
                 <h1 class="text-2xl md:text-3xl font-bold text-slate-900 leading-tight md:truncate">Dr. B. B. Hegde First Grade College, Kundapura</h1>
                 <div class="h-0.5 bg-slate-200 my-1 mx-auto md:mx-0 w-11/12 md:w-full"></div>
                 <p class="text-xs sm:text-sm text-slate-600">A Unit of Coondapur Education Society (R)</p>
+            </div>
+            <div class="md:ml-auto flex justify-center md:justify-end w-full md:w-auto mt-2 md:mt-0">
+                <a href="{{ url_for('logout') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-rose-600 text-white shadow hover:opacity-95">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M15.75 3A2.25 2.25 0 0 1 18 5.25v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 0-.75-.75h-9a.75.75 0 0 0-.75.75v13.5c0 .414.336.75.75.75h9a.75.75 0 0 0 .75-.75v-2.5a.75.75 0 0 1 1.5 0v2.5A2.25 2.25 0 0 1 15.75 21h-9A2.25 2.25 0 0 1 4.5 18.75V5.25A2.25 2.25 0 0 1 6.75 3h9z"/><path d="M15.53 12.53a.75.75 0 0 1 0-1.06l2.72-2.72a.75.75 0 1 1 1.06 1.06l-1.39 1.39H10.5a.75.75 0 0 1 0-1.5h7.41l-1.39-1.39a.75.75 0 0 1 1.06-1.06l2.72 2.72a2.25 2.25 0 0 1 0 3.18l-2.72 2.72a.75.75 0 1 1-1.06-1.06l1.39-1.39H10.5a.75.75 0 0 1 0-1.5h7.41l-1.39 1.39a.75.75 0 0 1-1.06 0z"/></svg>
+                    Logout
+                </a>
             </div>
         </div>
     </header>
@@ -52,6 +62,14 @@
                     <button id="refreshBtn" class="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-gradient-to-r from-brand-700 to-indigo-600 text-white shadow hover:opacity-95">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M12 6v3l-4-4 4-4v3a8 8 0 1 1-7.446 4.97.75.75 0 1 1 1.392-.56A6.5 6.5 0 1 0 12 6z"/></svg>
                         Refresh
+                    </button>
+                    <button id="exportExcelBtn" class="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-emerald-600 text-white shadow hover:opacity-95">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M4.5 3A1.5 1.5 0 0 0 3 4.5v15A1.5 1.5 0 0 0 4.5 21h15a1.5 1.5 0 0 0 1.5-1.5v-15A1.5 1.5 0 0 0 19.5 3h-15zm3.28 4.47 2.47 3.53 2.47-3.53h2.06l-3.28 4.67 3.28 4.66h-2.06l-2.47-3.52-2.47 3.52H5.72l3.28-4.66L5.72 7.47h2.06z"/></svg>
+                        Export Excel
+                    </button>
+                    <button id="exportPdfBtn" class="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-rose-600 text-white shadow hover:opacity-95">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M6 2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h7l5-5V4a2 2 0 0 0-2-2H6zm9 14h4l-4 4v-4zM7 6h10v2H7V6zm0 4h10v2H7v-2zm0 4h6v2H7v-2z"/></svg>
+                        Export PDF
                     </button>
                 </div>
             </div>
@@ -92,6 +110,8 @@
         const selectedDateLabel = document.getElementById('selectedDateLabel');
         const tableBody = document.querySelector('#attendanceTable tbody');
         const refreshBtn = document.getElementById('refreshBtn');
+        const exportExcelBtn = document.getElementById('exportExcelBtn');
+        const exportPdfBtn = document.getElementById('exportPdfBtn');
 
         function formatYMD(date) {
             const y = date.getFullYear();
@@ -171,6 +191,80 @@
 
         // Optional: light polling every 10s to reflect file changes without affecting writers
         setInterval(() => loadAttendance(datePicker.value), 10000);
+
+        function exportTableToExcel() {
+            const table = document.getElementById('attendanceTable');
+            const workbook = new ExcelJS.Workbook();
+            const sheet = workbook.addWorksheet('Attendance');
+
+            // Read headers
+            const headerCells = Array.from(table.querySelectorAll('thead th')).map(th => th.innerText.trim());
+            sheet.addRow(headerCells);
+            // Style header: blue background, bold white text
+            const headerRow = sheet.getRow(1);
+            headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+            headerRow.alignment = { vertical: 'middle', horizontal: 'left' };
+            headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } }; // blue-600
+
+            // Add body rows
+            const bodyRows = Array.from(table.querySelectorAll('tbody tr'));
+            bodyRows.forEach(tr => {
+                const cells = Array.from(tr.querySelectorAll('td')).map(td => td.innerText.trim());
+                sheet.addRow(cells);
+            });
+
+            // Dynamic column widths based on longest cell in each column
+            const numCols = headerCells.length;
+            for (let i = 1; i <= numCols; i++) {
+                let maxLen = headerCells[i - 1]?.length || 10;
+                sheet.getColumn(i).eachCell({ includeEmpty: true }, cell => {
+                    const v = (cell.value ?? '').toString();
+                    if (v.length > maxLen) maxLen = v.length;
+                });
+                // Add padding; approximate Excel width
+                sheet.getColumn(i).width = Math.min(Math.max(maxLen + 2, 10), 50);
+            }
+
+            const fileDate = datePicker.value || 'attendance';
+            workbook.xlsx.writeBuffer().then(buffer => {
+                const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `attendance_${fileDate}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });
+        }
+
+        function exportTableToPdf() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: 'landscape' });
+            const title = 'Faculty Attendance';
+            const dateText = `Date: ${datePicker.value}`;
+            doc.setFontSize(14);
+            doc.text(title, 14, 14);
+            doc.setFontSize(11);
+            doc.text(dateText, 14, 22);
+            // Build data for autoTable to allow header styling
+            const table = document.getElementById('attendanceTable');
+            const head = [Array.from(table.querySelectorAll('thead th')).map(th => th.innerText.trim())];
+            const body = Array.from(table.querySelectorAll('tbody tr')).map(tr => Array.from(tr.querySelectorAll('td')).map(td => td.innerText.trim()));
+            doc.autoTable({
+                head,
+                body,
+                startY: 28,
+                styles: { fontSize: 9 },
+                headStyles: { fillColor: [37, 99, 235], textColor: 255, halign: 'left' }, // blue-600
+                columnStyles: {}, // let autotable compute widths automatically
+            });
+            doc.save(`attendance_${datePicker.value}.pdf`);
+        }
+
+        if (exportExcelBtn) exportExcelBtn.addEventListener('click', exportTableToExcel);
+        if (exportPdfBtn) exportPdfBtn.addEventListener('click', exportTableToPdf);
     </script>
 </body>
 </html>
