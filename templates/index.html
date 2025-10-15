@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Graahi – Faculty Attendance</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Tailwind config for gradient/brand colors
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eef2ff', 100: '#e0e7ff', 600: '#4338ca', 700: '#3730a3'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100">
+    <header class="bg-white/90 backdrop-blur border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col md:flex-row md:items-center md:gap-4 gap-3">
+            <div class="flex md:block items-center justify-center">
+                <img src="{{ url_for('static', filename='images/logo-removebg-preview.png') }}" alt="College Logo" class="h-16 w-16 md:h-20 md:w-20 object-contain" />
+            </div>
+            <div class="min-w-0 text-center md:text-left">
+                <h1 class="text-2xl md:text-3xl font-bold text-slate-900 leading-tight md:truncate">Dr. B. B. Hegde First Grade College, Kundapura</h1>
+                <div class="h-0.5 bg-slate-200 my-1 mx-auto md:mx-0 w-11/12 md:w-full"></div>
+                <p class="text-xs sm:text-sm text-slate-600">A Unit of Coondapur Education Society (R)</p>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 mt-8">
+        <section class="text-center">
+            <h2 class="text-4xl sm:text-5xl font-extrabold bg-gradient-to-r from-brand-700 to-indigo-500 bg-clip-text text-transparent">Graahi</h2>
+            <p class="mt-2 text-base sm:text-lg text-slate-600 font-bold">Effortless Attendance. Endless Accuracy</p>
+        </section>
+
+        <section class="mt-8 bg-white border border-slate-200 rounded-xl shadow-sm">
+            <div class="px-4 sm:px-6 py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-brand-700"><path d="M6.75 3A3.75 3.75 0 0 0 3 6.75v10.5A3.75 3.75 0 0 0 6.75 21h10.5A3.75 3.75 0 0 0 21 17.25V6.75A3.75 3.75 0 0 0 17.25 3H6.75zM8.25 7.5a.75.75 0 0 1 .75-.75h6a.75.75 0 0 1 0 1.5h-6a.75.75 0 0 1-.75-.75zM7.5 12a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5H8.25A.75.75 0 0 1 7.5 12zm.75 3.75a.75.75 0 0 0 0 1.5h7.5a.75.75 0 0 0 0-1.5H8.25z"/></svg>
+                    <h3 class="text-lg font-semibold text-slate-900">Faculty Check‑in / Check‑out</h3>
+                </div>
+                <div class="flex items-center gap-3">
+                    <label for="datePicker" class="text-sm text-slate-600">Select date</label>
+                    <input id="datePicker" type="date" class="px-3 py-2 rounded-md border border-slate-300 text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-brand-600" />
+                    <button id="refreshBtn" class="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-gradient-to-r from-brand-700 to-indigo-600 text-white shadow hover:opacity-95">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M12 6v3l-4-4 4-4v3a8 8 0 1 1-7.446 4.97.75.75 0 1 1 1.392-.56A6.5 6.5 0 1 0 12 6z"/></svg>
+                        Refresh
+                    </button>
+                </div>
+            </div>
+            <div class="px-4 sm:px-6 pb-6">
+                <div class="mb-3 text-sm text-slate-600">Showing data for <span id="selectedDateLabel" class="font-medium text-slate-900"></span></div>
+                <div class="overflow-x-auto rounded-lg border border-slate-200">
+                    <table id="attendanceTable" class="min-w-full divide-y divide-slate-200">
+                        <thead class="bg-slate-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">Faculty ID</th>
+                                <th class="px-4 py-3 text-left text-sm font-semibold text-slate-700">Name</th>
+                                <th class="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">Check‑in</th>
+                                <th class="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">Check‑out</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 bg-white">
+                            <tr>
+                                <td colspan="4" class="px-4 py-6 text-center text-slate-500">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="mt-10">
+        <div class="h-px bg-gradient-to-r from-transparent via-indigo-300 to-transparent"></div>
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="py-6 text-center text-xs sm:text-sm text-slate-600">
+                © 2025 Moulya | Developed by Incubation Center | All Rights Reserved.
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        const datePicker = document.getElementById('datePicker');
+        const selectedDateLabel = document.getElementById('selectedDateLabel');
+        const tableBody = document.querySelector('#attendanceTable tbody');
+        const refreshBtn = document.getElementById('refreshBtn');
+
+        function formatYMD(date) {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        function setSelectedDateLabel(ymd) {
+            selectedDateLabel.textContent = ymd;
+        }
+
+        function toReadable(ts) {
+            if (!ts) return '';
+            const d = new Date(ts);
+            if (isNaN(d.getTime())) return ts; // fallback to original if unparsable
+            const dd = String(d.getDate()).padStart(2, '0');
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const yyyy = d.getFullYear();
+            const hh = String(d.getHours()).padStart(2, '0');
+            const mi = String(d.getMinutes()).padStart(2, '0');
+            const ss = String(d.getSeconds()).padStart(2, '0');
+            return `${dd}-${mm}-${yyyy} ${hh}:${mi}:${ss}`;
+        }
+
+        async function loadAttendance(ymd) {
+            setSelectedDateLabel(ymd);
+            tableBody.innerHTML = '<tr><td colspan="4" class="text-center text-gray">Loading...</td></tr>';
+            try {
+                const res = await fetch(`/api/attendance?date=${encodeURIComponent(ymd)}`);
+                if (!res.ok) throw new Error('Failed to fetch attendance');
+                let rows = await res.json();
+                if (Array.isArray(rows)) {
+                    rows = rows.slice().sort((a, b) => {
+                        const aId = (a.student_id || '').toString();
+                        const bId = (b.student_id || '').toString();
+                        return aId.localeCompare(bId, undefined, { numeric: true, sensitivity: 'base' });
+                    });
+                }
+                if (!Array.isArray(rows) || rows.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="4" class="text-center text-gray">No records</td></tr>';
+                    return;
+                }
+                tableBody.innerHTML = '';
+                for (const r of rows) {
+                    const tr = document.createElement('tr');
+                    const tdId = document.createElement('td');
+                    const tdName = document.createElement('td');
+                    const tdIn = document.createElement('td');
+                    const tdOut = document.createElement('td');
+                    tdId.className = 'px-4 py-3 whitespace-nowrap text-slate-800';
+                    tdName.className = 'px-4 py-3 break-words text-slate-800';
+                    tdIn.className = 'px-4 py-3 whitespace-nowrap text-slate-800';
+                    tdOut.className = 'px-4 py-3 whitespace-nowrap text-slate-800';
+                    tdId.textContent = r.student_id || '';
+                    tdName.textContent = r.name || '';
+                    tdIn.textContent = toReadable(r.checkin);
+                    tdOut.textContent = toReadable(r.checkout);
+                    tr.appendChild(tdId);
+                    tr.appendChild(tdName);
+                    tr.appendChild(tdIn);
+                    tr.appendChild(tdOut);
+                    tableBody.appendChild(tr);
+                }
+            } catch (err) {
+                tableBody.innerHTML = `<tr><td colspan="4" class="text-center" style="color:#b91c1c">${err.message}</td></tr>`;
+            }
+        }
+
+        // initialize with current date
+        const todayYmd = formatYMD(new Date());
+        datePicker.value = todayYmd;
+        loadAttendance(todayYmd);
+
+        datePicker.addEventListener('change', () => loadAttendance(datePicker.value));
+        refreshBtn.addEventListener('click', () => loadAttendance(datePicker.value));
+
+        // Optional: light polling every 10s to reflect file changes without affecting writers
+        setInterval(() => loadAttendance(datePicker.value), 10000);
+    </script>
+</body>
+</html>
+
+
