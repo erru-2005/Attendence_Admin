@@ -242,12 +242,28 @@
             headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
             headerRow.alignment = { vertical: 'middle', horizontal: 'left' };
             headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } }; // blue-600
+            headerRow.height = 22;
 
             // Add body rows
             const bodyRows = Array.from(table.querySelectorAll('tbody tr'));
             bodyRows.forEach(tr => {
                 const cells = Array.from(tr.querySelectorAll('td')).map(td => td.innerText.trim());
                 sheet.addRow(cells);
+            });
+
+            // Add thin borders and wrap text for all cells to retain readable GUI-like format
+            sheet.eachRow(row => {
+                row.eachCell(cell => {
+                    cell.border = {
+                        top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+                        left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+                        bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+                        right: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+                    };
+                    if (!cell.alignment) cell.alignment = {};
+                    cell.alignment.wrapText = true;
+                    cell.alignment.vertical = 'middle';
+                });
             });
 
             // Dynamic column widths based on longest cell in each column
@@ -259,7 +275,7 @@
                     if (v.length > maxLen) maxLen = v.length;
                 });
                 // Add padding; approximate Excel width
-                sheet.getColumn(i).width = Math.min(Math.max(maxLen + 2, 10), 50);
+                sheet.getColumn(i).width = Math.min(Math.max(maxLen + 2, 10), 60);
             }
 
             const fileDate = datePicker.value || 'attendance';
@@ -276,26 +292,80 @@
             });
         }
 
-        function exportTableToPdf() {
+        async function exportTableToPdf() {
             const { jsPDF } = window.jspdf;
-            const doc = new jsPDF({ orientation: 'landscape' });
-            const title = 'Faculty Attendance';
-            const dateText = `Date: ${datePicker.value}`;
-            doc.setFontSize(14);
-            doc.text(title, 14, 14);
+            const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+
+            // Sanitize helper to avoid PDF header garbling (non-breaking hyphen, en/em dashes, zero-width chars)
+            const sanitize = (text) => {
+                if (!text) return '';
+                return text
+                    .replace(/[\u200B-\u200D\uFEFF]/g, '') // zero-width chars
+                    .replace(/[\u2010\u2011\u2012\u2013\u2014\u2212]/g, '-') // various dashes to ASCII hyphen
+                    .replace(/\s+/g, ' ') // collapse spaces
+                    .trim();
+            };
+
+            const logoUrl = "{{ url_for('static', filename='images/logo-removebg-preview.png') }}";
+            async function loadImageAsDataUrl(url) {
+                try {
+                    const res = await fetch(url);
+                    const blob = await res.blob();
+                    return await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(reader.result);
+                        reader.readAsDataURL(blob);
+                    });
+                } catch (e) {
+                    return null;
+                }
+            }
+
+            // Header layout
+            const marginX = 40;
+            const topY = 40;
+            let currentY = topY;
+            const logoDataUrl = await loadImageAsDataUrl(logoUrl);
+            const logoHeight = 48;
+            const logoWidth = 48;
+            if (logoDataUrl) {
+                doc.addImage(logoDataUrl, 'PNG', marginX, currentY, logoWidth, logoHeight);
+            }
+            const textX = marginX + logoWidth + 16;
+            doc.setFontSize(18);
+            doc.setFont(undefined, 'bold');
+            doc.text('Dr. B. B. Hegde First Grade College, Kundapura', textX, currentY + 22);
             doc.setFontSize(11);
-            doc.text(dateText, 14, 22);
+            doc.setFont(undefined, 'normal');
+            doc.text('A Unit of Coondapur Education Society (R)', textX, currentY + 40);
+
+            // Divider line
+            doc.setDrawColor(203, 213, 225); // slate-300
+            doc.setLineWidth(1);
+            doc.line(marginX, currentY + logoHeight + 12, doc.internal.pageSize.getWidth() - marginX, currentY + logoHeight + 12);
+
+            // Section title and date
+            const sectionY = currentY + logoHeight + 36;
+            doc.setFontSize(14);
+            doc.setFont(undefined, 'bold');
+            doc.text('Faculty Attendance', marginX, sectionY);
+            doc.setFontSize(11);
+            doc.setFont(undefined, 'normal');
+            doc.text(`Date: ${datePicker.value}`, marginX, sectionY + 18);
             // Build data for autoTable to allow header styling
             const table = document.getElementById('attendanceTable');
-            const head = [Array.from(table.querySelectorAll('thead th')).map(th => th.innerText.trim())];
-            const body = Array.from(table.querySelectorAll('tbody tr')).map(tr => Array.from(tr.querySelectorAll('td')).map(td => td.innerText.trim()));
+            const head = [Array.from(table.querySelectorAll('thead th')).map(th => sanitize(th.innerText))];
+            const body = Array.from(table.querySelectorAll('tbody tr')).map(tr => Array.from(tr.querySelectorAll('td')).map(td => sanitize(td.innerText) || ''));
             doc.autoTable({
                 head,
                 body,
-                startY: 28,
-                styles: { fontSize: 9 },
+                startY: sectionY + 30,
+                theme: 'grid',
+                styles: { fontSize: 9, cellPadding: 3, overflow: 'linebreak' },
                 headStyles: { fillColor: [37, 99, 235], textColor: 255, halign: 'left' }, // blue-600
-                columnStyles: {}, // let autotable compute widths automatically
+                // Let AutoTable calculate natural widths; wrap as needed and paginate automatically
+                tableWidth: 'auto',
+                columnStyles: {},
             });
             doc.save(`attendance_${datePicker.value}.pdf`);
         }
