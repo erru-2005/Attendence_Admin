@@ -1,0 +1,506 @@
+{
+    "BBHCF001": {
+        "name": "Prof. K. Umesh Shetty",
+        "designation": "Professor  &  Principal",
+        "department": "Administration",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF002": {
+        "name": "Dr. Chethan Shetty K",
+        "designation": "Assoc. Professor  & Vice Principal",
+        "department": "Administration",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF003": {
+        "name": "Mr. Rakshith Rao",
+        "designation": "Asst. Professor of Commerce & \nDean ( Administration)",
+        "department": "Commerce",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF004": {
+        "name": "Mr. Giriraj Bhat",
+        "designation": "Assoc. Professor of  Comp. Applications & \nDean (Academics)",
+        "department": "Computer Applications",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF005": {
+        "name": "Mrs. Veena V. Bhat",
+        "designation": "Asst. Professor  & HOD of Commerce",
+        "department": "Commerce",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF006": {
+        "name": "Mr. Rajesh Shetty",
+        "designation": "Assoc. Professor of  Commerce",
+        "department": "Commerce",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF007": {
+        "name": "Mr. Satish Shetty",
+        "designation": "Asst. Professor of Commerce",
+        "department": "Commerce",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF008": {
+        "name": "Mrs. Preeti Hegde",
+        "designation": "Asst. Professor of Commerce",
+        "department": "Commerce",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF009": {
+        "name": "Mr. Sudhir Kumar",
+        "designation": "Asst. Professor of Commerce",
+        "department": "Commerce",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF010": {
+        "name": "Mrs. Malathi",
+        "designation": "Asst. Professor of Commerce",
+        "department": "Commerce",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF011": {
+        "name": "Mr. Yogeesh",
+        "designation": "Asst. Professor of Commerce",
+        "department": "Commerce",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF012": {
+        "name": "Mr. Sathish Kanchan",
+        "designation": "Asst. Professor of Commerce",
+        "department": "Commerce",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF013": {
+        "name": "Mrs. Prithvishri G. Shetty",
+        "designation": "Asst. Professor of Commerce",
+        "department": "Commerce",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF014": {
+        "name": "Ms. Deepa Poojary",
+        "designation": "Asst. Professor of Commerce",
+        "department": "Commerce",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF015": {
+        "name": "Mrs. Vinaya V. Shetty",
+        "designation": "Asst. Professor of Commerce",
+        "department": "Commerce",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF016": {
+        "name": "Mr. Sharath Kumar",
+        "designation": "Asst. Professor of Commerce",
+        "department": "Commerce",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF017": {
+        "name": "Mrs. Shwetha B.",
+        "designation": "Asst. Professor of Commerce",
+        "department": "Commerce",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF018": {
+        "name": "Mrs. Joseline Renita D. Almeida",
+        "designation": "Asst. Professor of Commerce",
+        "department": "Commerce",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF019": {
+        "name": "Ms. Pooja",
+        "designation": "Asst. Professor of Commerce",
+        "department": "Commerce",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF020": {
+        "name": "Mr. Akshay Kumar",
+        "designation": "Asst. Professor of Commerce",
+        "department": "Commerce",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF021": {
+        "name": "Mr. Kishor Krishna Marakala",
+        "designation": "Asst. Professor of Commerce",
+        "department": "Commerce",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF022": {
+        "name": "Mr. Vinod Kumar K",
+        "designation": "Asst. Professor of Commerce",
+        "department": "Commerce",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF023": {
+        "name": "Mr. Shreyas",
+        "designation": "Asst. Professor of Commerce",
+        "department": "Commerce",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF024": {
+        "name": "Mrs. Nanda Rai",
+        "designation": "Asst. Professor & HOD of Business Administration",
+        "department": "Business Administration",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF025": {
+        "name": "Mrs. Avitha M. Correa",
+        "designation": "Asst. Professor of Business Administration",
+        "department": "Business Administration",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF026": {
+        "name": "Mr. Hareesha B.",
+        "designation": "Assoc. Professor of Business Administration",
+        "department": "Business Administration",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF027": {
+        "name": "Mr. Praveen Mogaveera",
+        "designation": "Assoc. Professor of  Business Administration",
+        "department": "Business Administration",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF028": {
+        "name": "Mr. Rajath Bangera",
+        "designation": "Asst. Professor of Business Administration",
+        "department": "Business Administration",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF029": {
+        "name": "Ms. Vishalakshi S",
+        "designation": "Asst. Professor of Business Administration",
+        "department": "Business Administration",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF030": {
+        "name": "Mrs. Deepika  G",
+        "designation": "Asst. Professor  & HOD of English",
+        "department": "English",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF031": {
+        "name": "Ms. Ravina C.  Poojari",
+        "designation": "Asst. Professor of English",
+        "department": "English",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF032": {
+        "name": "Mrs. Swathi G.  Rao",
+        "designation": "Asst. Professor of English",
+        "department": "English",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF033": {
+        "name": "Mrs. Surekha",
+        "designation": "Asst. Professor of English",
+        "department": "English",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF034": {
+        "name": "Mrs. Reshma Shetty",
+        "designation": "Asst. Professor of Kannada",
+        "department": "Kannada",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF035": {
+        "name": "Mrs. Praveena M Poojary",
+        "designation": "Asst. Professor of Kannada",
+        "department": "Kannada",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF036": {
+        "name": "Ms. Rashmitha Shetty",
+        "designation": "Asst. Professor of Kannada",
+        "department": "Kannada",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF037": {
+        "name": "Dr. Deepa",
+        "designation": "Assoc. Professor & HOD  of Hindi",
+        "department": "Hindi",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF038": {
+        "name": "Mrs. Revathi D.",
+        "designation": "Asst. Professor of Hindi",
+        "department": "Hindi",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF039": {
+        "name": "Mrs. Megha S  Bhat",
+        "designation": "Asst. Professor & HOD of Sanskrit",
+        "department": "Sanskrit",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF040": {
+        "name": "Mr. Mahesh Kumar",
+        "designation": "Assoc. Prof.  &  HOD  of  Comp. Applications",
+        "department": "Computer Applications",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF041": {
+        "name": "Mr. Harish Kanchan",
+        "designation": "Asst. Professor of  Comp. Applications",
+        "department": "Computer Applications",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF042": {
+        "name": "Mrs. Wilma Sharal Cornelio",
+        "designation": "Asst. Professor of  Comp Applications",
+        "department": "Computer Applications",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF043": {
+        "name": "Mrs. Jayalakshmi K",
+        "designation": "Asst. Professor of  Comp. Applications",
+        "department": "Computer Applications",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF044": {
+        "name": "Mrs. Pavithra",
+        "designation": "Asst. Professor of  Comp. Applications",
+        "department": "Computer Applications",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF045": {
+        "name": "Mr. Shreekanth",
+        "designation": "Asst. Professor of   Comp. Applications",
+        "department": "Computer Applications",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF046": {
+        "name": "Ms. Megha",
+        "designation": "Asst. Professor of  Comp. Applications",
+        "department": "Computer Applications",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF047": {
+        "name": "Ms. Rashmi Gavadi",
+        "designation": "Asst. Professor of  Comp. Applications",
+        "department": "Computer Applications",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF048": {
+        "name": "Mr. Pranam  R Betrabet",
+        "designation": "Asst. Professor of  Comp. Applications",
+        "department": "Computer Applications",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF049": {
+        "name": "Mrs.  Nirmala  B.",
+        "designation": "Asst. Professor of  Comp. Applications",
+        "department": "Computer Applications",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF050": {
+        "name": "Mrs. Vijaya Shree A",
+        "designation": "Asst. Professor of  Comp. Applications",
+        "department": "Computer Applications",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF051": {
+        "name": "Ms. Shivani Adiga",
+        "designation": "Asst. Professor of  Comp. Applications",
+        "department": "Computer Applications",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF052": {
+        "name": "Mr. Mahesh Poojari",
+        "designation": "Asst. Professor of  Comp. Applications",
+        "department": "Computer Applications",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF053": {
+        "name": "Mr. Ranjith T.N.",
+        "designation": "Physical Education Director",
+        "department": "Physical Education",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF054": {
+        "name": "Mr. Thimmappa D.S",
+        "designation": "Training & Placement officer",
+        "department": "Training & Placement",
+        "category": "Teaching Faculty"
+    },
+    "BBHCF055": {
+        "name": "Mr. Mahesh Naik",
+        "designation": "Librarian",
+        "department": "Library",
+        "category": "Teaching Faculty"
+    },
+    "BBHCFN001": {
+        "name": "Ms. Gayathri Shet",
+        "designation": "Office Superintendent",
+        "department": "Administrative Staff",
+        "category": "Non-Teaching Faculty"
+    },
+    "BBHCFN002": {
+        "name": "Mrs. Surekha Shetty",
+        "designation": "First Division  Assistant",
+        "department": "Administrative Staff",
+        "category": "Non-Teaching Faculty"
+    },
+    "BBHCFN003": {
+        "name": "Mr. Sudheendra K.S",
+        "designation": "First Division  Assistant",
+        "department": "Administrative Staff",
+        "category": "Non-Teaching Faculty"
+    },
+    "BBHCFN004": {
+        "name": "Mrs. Vidyavathi Shetty",
+        "designation": "Senior Typist",
+        "department": "Administrative Staff",
+        "category": "Non-Teaching Faculty"
+    },
+    "BBHCFN005": {
+        "name": "Ms. Sangeetha",
+        "designation": "Second Division Clerk",
+        "department": "Administrative Staff",
+        "category": "Non-Teaching Faculty"
+    },
+    "BBHCFN006": {
+        "name": "Mr. Sharath kotari",
+        "designation": "Accountant",
+        "department": "Administrative Staff",
+        "category": "Non-Teaching Faculty"
+    },
+    "BBHCFN007": {
+        "name": "Mr. Nithyananda Nayak",
+        "designation": "Typist Cum Clerk",
+        "department": "Administrative Staff",
+        "category": "Non-Teaching Faculty"
+    },
+    "BBHCFN008": {
+        "name": "Mr. Rakshith K.",
+        "designation": "PA to Principal & System Admn",
+        "department": "Administrative Staff",
+        "category": "Non-Teaching Faculty"
+    },
+    "BBHCFN009": {
+        "name": "Mrs. Supreetha",
+        "designation": "Senior Typist",
+        "department": "Administrative Staff",
+        "category": "Non-Teaching Faculty"
+    },
+    "BBHCFN010": {
+        "name": "Mr. Sathisha  Shetty",
+        "designation": "Campus Supervisor",
+        "department": "Administrative Staff",
+        "category": "Non-Teaching Faculty"
+    },
+    "BBHCFN011": {
+        "name": "Mrs. Prathika",
+        "designation": "Library  Assistant",
+        "department": "DLIC",
+        "category": "Non-Teaching Faculty"
+    },
+    "BBHCFN012": {
+        "name": "Mr. Akash",
+        "designation": "Computer Programmer",
+        "department": "Computer Applications",
+        "category": "Non-Teaching Faculty"
+    },
+    "BBHCFN013": {
+        "name": "Mrs. Mamatha  Shetty B",
+        "designation": "Senior Typist",
+        "department": "Administrative Staff",
+        "category": "Non-Teaching Faculty"
+    },
+    "BBHCFN014": {
+        "name": "Mr. Sachin Kumar",
+        "designation": "Computer Programmer",
+        "department": "Computer Applications",
+        "category": "Non-Teaching Faculty"
+    },
+    "BBHCFN015": {
+        "name": "Mr. Manjunath Kulala",
+        "designation": "Computer Programmer",
+        "department": "Computer Applications",
+        "category": "Non-Teaching Faculty"
+    },
+    "BBHCFN016": {
+        "name": "Mrs. Nishmitha K",
+        "designation": "Computer Programmer",
+        "department": "Computer Applications",
+        "category": "Non-Teaching Faculty"
+    },
+    "BBHCFN017": {
+        "name": "Mr. Darshan",
+        "designation": "Computer Programmer",
+        "department": "Computer Applications",
+        "category": "Non-Teaching Faculty"
+    },
+    "BBHCFN018": {
+        "name": "Mr. Sharath",
+        "designation": "Attender",
+        "department": "Support Staff",
+        "category": "Non-Teaching Faculty"
+    },
+    "BBHCFN019": {
+        "name": "Mr. Rajesh  Shetty",
+        "designation": "Attender",
+        "department": "Support Staff",
+        "category": "Non-Teaching Faculty"
+    },
+    "BBHCFN020": {
+        "name": "Mr. Ramesh Mogaveera",
+        "designation": "Attender",
+        "department": "Support Staff",
+        "category": "Non-Teaching Faculty"
+    },
+    "BBHCFN021": {
+        "name": "Mr. Nithesh",
+        "designation": "Attender",
+        "department": "Support Staff",
+        "category": "Non-Teaching Faculty"
+    },
+    "BBHCFN022": {
+        "name": "Mr. Raymond",
+        "designation": "Security Guard",
+        "department": "Support Staff",
+        "category": "Non-Teaching Faculty"
+    },
+    "BBHCFN023": {
+        "name": "Mr. Chandrashekar Shetty",
+        "designation": "Driver",
+        "department": "Support Staff",
+        "category": "Non-Teaching Faculty"
+    },
+    "BBHCFN024": {
+        "name": "Mrs. Rathna",
+        "designation": "Sanitary Worker",
+        "department": "Support Staff",
+        "category": "Non-Teaching Faculty"
+    },
+    "BBHCFN025": {
+        "name": "Mrs. Bhagyalakshmi",
+        "designation": "Sanitary Worker",
+        "department": "Support Staff",
+        "category": "Non-Teaching Faculty"
+    },
+    "BBHCFN026": {
+        "name": "Mrs. Tara",
+        "designation": "Sanitary Worker",
+        "department": "Support Staff",
+        "category": "Non-Teaching Faculty"
+    },
+    "BBHCFN027": {
+        "name": "Mrs. Yashoda",
+        "designation": "Sanitary Worker",
+        "department": "Support Staff",
+        "category": "Non-Teaching Faculty"
+    },
+    "BBHCFN028": {
+        "name": "Mrs. Preethi",
+        "designation": "Sanitary Worker",
+        "department": "Support Staff",
+        "category": "Non-Teaching Faculty"
+    },
+    "BBHCFN029": {
+        "name": "Mrs. Parvathi",
+        "designation": "Sanitary Worker",
+        "department": "Support Staff",
+        "category": "Non-Teaching Faculty"
+    }
+}
