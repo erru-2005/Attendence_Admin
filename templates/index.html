@@ -1,10 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Graahi – Faculty Attendance</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- instead of CDN -->
+    <!-- <script src="https://cdn.tailwindcss.com"></script> -->
+
+    <!-- use Flask static path -->
+    <script src="{{ url_for('static', filename='js/tailwindcss.js') }}"></script>
+
     <script>
         // Tailwind config for gradient/brand colors
         tailwind.config = {
@@ -24,14 +30,17 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 </head>
+
 <body class="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100">
     <header class="bg-white/90 backdrop-blur border-b border-slate-200">
         <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col md:flex-row md:items-center md:gap-4 gap-3">
             <div class="flex md:block items-center justify-center">
-                <img src="{{ url_for('static', filename='images/logo-removebg-preview.png') }}" alt="College Logo" class="h-16 w-16 md:h-20 md:w-20 object-contain" />
+                <img src="{{ url_for('static', filename='images/logo-removebg-preview.png') }}" alt="College Logo"
+                    class="h-16 w-16 md:h-20 md:w-20 object-contain" />
             </div>
             <div class="min-w-0 text-center md:text-left">
-                <h1 class="text-2xl md:text-3xl font-bold text-slate-900 leading-tight md:truncate">Dr. B. B. Hegde First Grade College, Kundapura</h1>
+                <h1 class="text-2xl md:text-3xl font-bold text-slate-900 leading-tight md:truncate">Dr. B. B. Hegde
+                    First Grade College, Kundapura</h1>
                 <div class="h-0.5 bg-slate-200 my-1 mx-auto md:mx-0 w-11/12 md:w-full"></div>
                 <p class="text-xs sm:text-sm text-slate-600">A Unit of Coondapur Education Society (R)</p>
             </div>
@@ -46,21 +55,33 @@
 
     <main class="max-w-7xl mx-auto px-4 mt-8">
         <section class="text-center">
-            <h2 class="text-4xl sm:text-5xl font-extrabold bg-gradient-to-r from-brand-700 to-indigo-500 bg-clip-text text-transparent">Graahi</h2>
+            <h2
+                class="text-4xl sm:text-5xl font-extrabold bg-gradient-to-r from-brand-700 to-indigo-500 bg-clip-text text-transparent">
+                Graahi</h2>
             <p class="mt-2 text-base sm:text-lg text-slate-600 font-bold">YOUR PRESENCE, OUR PRIORITY</p>
         </section>
 
         <section class="mt-8 bg-white border border-slate-200 rounded-xl shadow-sm">
             <div class="px-4 sm:px-6 py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div class="flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-brand-700"><path d="M6.75 3A3.75 3.75 0 0 0 3 6.75v10.5A3.75 3.75 0 0 0 6.75 21h10.5A3.75 3.75 0 0 0 21 17.25V6.75A3.75 3.75 0 0 0 17.25 3H6.75zM8.25 7.5a.75.75 0 0 1 .75-.75h6a.75.75 0 0 1 0 1.5h-6a.75.75 0 0 1-.75-.75zM7.5 12a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5H8.25A.75.75 0 0 1 7.5 12zm.75 3.75a.75.75 0 0 0 0 1.5h7.5a.75.75 0 0 0 0-1.5H8.25z"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
+                        class="w-6 h-6 text-brand-700">
+                        <path
+                            d="M6.75 3A3.75 3.75 0 0 0 3 6.75v10.5A3.75 3.75 0 0 0 6.75 21h10.5A3.75 3.75 0 0 0 21 17.25V6.75A3.75 3.75 0 0 0 17.25 3H6.75zM8.25 7.5a.75.75 0 0 1 .75-.75h6a.75.75 0 0 1 0 1.5h-6a.75.75 0 0 1-.75-.75zM7.5 12a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5H8.25A.75.75 0 0 1 7.5 12zm.75 3.75a.75.75 0 0 0 0 1.5h7.5a.75.75 0 0 0 0-1.5H8.25z" />
+                    </svg>
                     <h3 class="text-lg font-semibold text-slate-900">Faculty Check‑in / Check‑out</h3>
                 </div>
                 <div class="flex items-center gap-3">
                     <label for="datePicker" class="text-sm text-slate-600">Select date</label>
-                    <input id="datePicker" type="date" class="px-3 py-2 rounded-md border border-slate-300 text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-brand-600" />
-                    <button id="refreshBtn" class="inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-md bg-gradient-to-r from-brand-700 to-indigo-600 text-white shadow hover:opacity-95" aria-label="Refresh" title="Refresh">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M12 6v3l-4-4 4-4v3a8 8 0 1 1-7.446 4.97.75.75 0 1 1 1.392-.56A6.5 6.5 0 1 0 12 6z"/></svg>
+                    <input id="datePicker" type="date"
+                        class="px-3 py-2 rounded-md border border-slate-300 text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-brand-600" />
+                    <button id="refreshBtn"
+                        class="inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-md bg-gradient-to-r from-brand-700 to-indigo-600 text-white shadow hover:opacity-95"
+                        aria-label="Refresh" title="Refresh">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+                            <path
+                                d="M12 6v3l-4-4 4-4v3a8 8 0 1 1-7.446 4.97.75.75 0 1 1 1.392-.56A6.5 6.5 0 1 0 12 6z" />
+                        </svg>
                         <span class="hidden sm:inline">Refresh</span>
                     </button>
                 </div>
@@ -70,22 +91,38 @@
                 <div class="max-w-xl">
                     <div class="relative">
                         <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-5 h-5"><circle cx="11" cy="11" r="7"/><path d="M21 21l-3.6-3.6"/></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2" class="w-5 h-5">
+                                <circle cx="11" cy="11" r="7" />
+                                <path d="M21 21l-3.6-3.6" />
+                            </svg>
                         </span>
-                        <input id="searchInput" type="text" placeholder="Search by Faculty ID, Name, or time..." class="w-full pl-9 pr-3 py-2 rounded-md border border-slate-300 text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-brand-600" />
+                        <input id="searchInput" type="text" placeholder="Search by Faculty ID, Name, or time..."
+                            class="w-full pl-9 pr-3 py-2 rounded-md border border-slate-300 text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-brand-600" />
                     </div>
                 </div>
             </div>
             <div class="px-4 sm:px-6 pb-6">
                 <div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <div class="text-sm text-slate-600">Showing data for <span id="selectedDateLabel" class="font-medium text-slate-900"></span></div>
+                    <div class="text-sm text-slate-600">Showing data for <span id="selectedDateLabel"
+                            class="font-medium text-slate-900"></span></div>
                     <div class="flex items-center gap-2 sm:justify-end">
-                        <button id="exportExcelBtn" class="inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-md bg-emerald-600 text-white shadow hover:opacity-95">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M4.5 3A1.5 1.5 0 0 0 3 4.5v15A1.5 1.5 0 0 0 4.5 21h15a1.5 1.5 0 0 0 1.5-1.5v-15A1.5 1.5 0 0 0 19.5 3h-15zm3.28 4.47 2.47 3.53 2.47-3.53h2.06l-3.28 4.67 3.28 4.66h-2.06l-2.47-3.52-2.47 3.52H5.72l3.28-4.66L5.72 7.47h2.06z"/></svg>
+                        <button id="exportExcelBtn"
+                            class="inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-md bg-emerald-600 text-white shadow hover:opacity-95">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
+                                class="w-5 h-5">
+                                <path
+                                    d="M4.5 3A1.5 1.5 0 0 0 3 4.5v15A1.5 1.5 0 0 0 4.5 21h15a1.5 1.5 0 0 0 1.5-1.5v-15A1.5 1.5 0 0 0 19.5 3h-15zm3.28 4.47 2.47 3.53 2.47-3.53h2.06l-3.28 4.67 3.28 4.66h-2.06l-2.47-3.52-2.47 3.52H5.72l3.28-4.66L5.72 7.47h2.06z" />
+                            </svg>
                             Export Excel
                         </button>
-                        <button id="exportPdfBtn" class="inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-md bg-rose-600 text-white shadow hover:opacity-95">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M6 2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h7l5-5V4a2 2 0 0 0-2-2H6zm9 14h4l-4 4v-4zM7 6h10v2H7V6zm0 4h10v2H7v-2zm0 4h6v2H7v-2z"/></svg>
+                        <button id="exportPdfBtn"
+                            class="inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-md bg-rose-600 text-white shadow hover:opacity-95">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
+                                class="w-5 h-5">
+                                <path
+                                    d="M6 2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h7l5-5V4a2 2 0 0 0-2-2H6zm9 14h4l-4 4v-4zM7 6h10v2H7V6zm0 4h10v2H7v-2zm0 4h6v2H7v-2z" />
+                            </svg>
                             Export PDF
                         </button>
                     </div>
@@ -94,10 +131,13 @@
                     <table id="attendanceTable" class="min-w-full divide-y divide-slate-200">
                         <thead class="bg-slate-50">
                             <tr>
-                                <th class="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">Faculty ID</th>
+                                <th class="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">
+                                    Faculty ID</th>
                                 <th class="px-4 py-3 text-left text-sm font-semibold text-slate-700">Name</th>
-                                <th class="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">Check‑in</th>
-                                <th class="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">Check‑out</th>
+                                <th class="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">
+                                    Check‑in</th>
+                                <th class="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">
+                                    Check‑out</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 bg-white">
@@ -374,6 +414,5 @@
         if (exportPdfBtn) exportPdfBtn.addEventListener('click', exportTableToPdf);
     </script>
 </body>
+
 </html>
-
-
