@@ -98,7 +98,6 @@
                                 <th class="px-4 py-3 text-left text-sm font-semibold text-slate-700">Name</th>
                                 <th class="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">Check‑in</th>
                                 <th class="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">Check‑out</th>
-                                <th class="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">Delay</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 bg-white">
@@ -190,12 +189,10 @@
                 const tdName = document.createElement('td');
                 const tdIn = document.createElement('td');
                 const tdOut = document.createElement('td');
-                const tdDelay = document.createElement('td');
                 tdId.className = 'px-4 py-3 whitespace-nowrap text-slate-800';
                 tdName.className = 'px-4 py-3 break-words text-slate-800';
                 tdIn.className = 'px-4 py-3 whitespace-nowrap text-slate-800';
                 tdOut.className = 'px-4 py-3 whitespace-nowrap text-slate-800';
-                tdDelay.className = 'px-4 py-3 whitespace-nowrap text-slate-800';
                 tdId.textContent = r.student_id || '';
                 tdName.textContent = r.name || '';
                 tdIn.textContent = toReadable(r.checkin);
@@ -203,9 +200,7 @@
                 tr.appendChild(tdId);
                 tr.appendChild(tdName);
                 tr.appendChild(tdIn);
-                tdDelay.textContent = r.delay || '';
                 tr.appendChild(tdOut);
-                tr.appendChild(tdDelay);
                 tableBody.appendChild(tr);
             }
         }
