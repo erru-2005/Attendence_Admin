@@ -135,18 +135,26 @@
                                     Faculty ID</th>
                                 <th class="px-4 py-3 text-left text-sm font-semibold text-slate-700">Name</th>
                                 <th class="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">
-                                    Check‑in</th>
+                                    Check‑in (Time)</th>
                                 <th class="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">
-                                    Check‑out</th>
+                                    Check‑out (Time)</th>
+                                <th class="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">
+                                    Delay (Time)</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 bg-white">
                             <tr>
-                                <td colspan="4" class="px-4 py-6 text-center text-slate-500">Loading...</td>
+                                <td colspan="5" class="px-4 py-6 text-center text-slate-500">Loading...</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
+            <div class="mt-3 text-xs sm:text-sm text-slate-700">
+                <div class="inline-flex items-center gap-2 mr-4"><span class="inline-block h-3 w-3 rounded-sm bg-emerald-100 border border-emerald-300"></span><span>Delay ≤ 01:00:00 (OK)</span></div>
+                <div class="inline-flex items-center gap-2 mr-4"><span class="inline-block h-3 w-3 rounded-sm bg-amber-100 border border-amber-300"></span><span>01:00:01 – 02:00:00 (Half‑day)</span></div>
+                <div class="inline-flex items-center gap-2 mr-4"><span class="inline-block h-3 w-3 rounded-sm bg-rose-100 border border-rose-300"></span><span>≥ 02:00:01 (Full‑day)</span></div>
+                <div class="inline-flex items-center gap-2"><span class="inline-block h-3 w-3 rounded-sm bg-purple-100 border border-purple-300"></span><span>Absent (N/A)</span></div>
+            </div>
             </div>
         </section>
     </main>
@@ -196,9 +204,19 @@
             return `${dd}-${mm}-${yyyy} ${hh}:${mi}:${ss}`;
         }
 
+        function toTimeOnly(ts) {
+            if (!ts) return '';
+            const d = new Date(ts);
+            if (isNaN(d.getTime())) return ts; // fallback to original if unparsable
+            const hh = String(d.getHours()).padStart(2, '0');
+            const mi = String(d.getMinutes()).padStart(2, '0');
+            const ss = String(d.getSeconds()).padStart(2, '0');
+            return `${hh}:${mi}:${ss}`;
+        }
+
         async function loadAttendance(ymd) {
             setSelectedDateLabel(ymd);
-            tableBody.innerHTML = '<tr><td colspan="4" class="text-center text-gray">Loading...</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-gray">Loading...</td></tr>';
             try {
                 const res = await fetch(`/api/attendance?date=${encodeURIComponent(ymd)}`);
                 if (!res.ok) throw new Error('Failed to fetch attendance');
@@ -212,37 +230,80 @@
                 }
                 cachedRows = rows;
                 if (!Array.isArray(rows) || rows.length === 0) {
-                    tableBody.innerHTML = '<tr><td colspan="4" class="text-center text-gray">No records</td></tr>';
+                    tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-gray">No records</td></tr>';
                     return;
                 }
                 renderTable(rows);
             } catch (err) {
-                tableBody.innerHTML = `<tr><td colspan="4" class="text-center" style="color:#b91c1c">${err.message}</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="5" class="text-center" style="color:#b91c1c">${err.message}</td></tr>`;
             }
+        }
+
+        function hmsToSeconds(hms) {
+            if (!hms || typeof hms !== 'string') return 0;
+            const parts = hms.split(':');
+            if (parts.length !== 3) return 0;
+            const [hh, mm, ss] = parts.map(x => parseInt(x, 10) || 0);
+            return (hh * 3600) + (mm * 60) + ss;
+        }
+
+        function classifyDelayColor(delayVal) {
+            if (!delayVal || typeof delayVal !== 'string') return '';
+            if (delayVal.toUpperCase() === 'N/A') return 'bg-purple-50';
+            const s = hmsToSeconds(delayVal);
+            if (s === 0) return 'bg-emerald-50';
+            if (s <= 3600) return 'bg-emerald-50';
+            if (s <= 7200) return 'bg-amber-50';
+            return 'bg-rose-50';
         }
 
         function renderTable(rows) {
             tableBody.innerHTML = '';
+            // Group by student_id to rowspan delay per person
+            const groups = {};
             for (const r of rows) {
-                const tr = document.createElement('tr');
-                const tdId = document.createElement('td');
-                const tdName = document.createElement('td');
-                const tdIn = document.createElement('td');
-                const tdOut = document.createElement('td');
-                tdId.className = 'px-4 py-3 whitespace-nowrap text-slate-800';
-                tdName.className = 'px-4 py-3 break-words text-slate-800';
-                tdIn.className = 'px-4 py-3 whitespace-nowrap text-slate-800';
-                tdOut.className = 'px-4 py-3 whitespace-nowrap text-slate-800';
-                tdId.textContent = r.student_id || '';
-                tdName.textContent = r.name || '';
-                tdIn.textContent = toReadable(r.checkin);
-                tdOut.textContent = toReadable(r.checkout);
-                tr.appendChild(tdId);
-                tr.appendChild(tdName);
-                tr.appendChild(tdIn);
-                tr.appendChild(tdOut);
-                tableBody.appendChild(tr);
+                const key = (r.student_id || '').toString();
+                if (!groups[key]) groups[key] = [];
+                groups[key].push(r);
             }
+            Object.values(groups).forEach(group => {
+                const groupDelayVal = (group[0]?.delay ?? '').toString();
+                const rowColorClass = classifyDelayColor(groupDelayVal);
+                group.forEach((r, idx) => {
+                    const tr = document.createElement('tr');
+                    if (rowColorClass) tr.className = rowColorClass;
+                    const tdId = document.createElement('td');
+                    const tdName = document.createElement('td');
+                    const tdIn = document.createElement('td');
+                    const tdOut = document.createElement('td');
+                    tdId.className = 'px-4 py-3 whitespace-nowrap text-slate-800';
+                    tdName.className = 'px-4 py-3 break-words text-slate-800';
+                    tdIn.className = 'px-4 py-3 whitespace-nowrap text-slate-800';
+                    tdOut.className = 'px-4 py-3 whitespace-nowrap text-slate-800';
+                    tdId.textContent = r.student_id || '';
+                    tdName.textContent = r.name || '';
+                    tdIn.textContent = toTimeOnly(r.checkin);
+                    tdOut.textContent = toTimeOnly(r.checkout);
+                    tr.appendChild(tdId);
+                    tr.appendChild(tdName);
+                    tr.appendChild(tdIn);
+                    tr.appendChild(tdOut);
+                    if (idx === 0) {
+                        const tdDelay = document.createElement('td');
+                        const delayVal = (r.delay ?? '').toString();
+                        if (delayVal.toUpperCase() === 'N/A') {
+                            tdDelay.textContent = 'Absent';
+                            tdDelay.className = 'px-4 py-3 whitespace-nowrap font-semibold text-rose-600';
+                        } else {
+                            tdDelay.textContent = delayVal;
+                            tdDelay.className = 'px-4 py-3 whitespace-nowrap text-slate-800';
+                        }
+                        tdDelay.rowSpan = group.length;
+                        tr.appendChild(tdDelay);
+                    }
+                    tableBody.appendChild(tr);
+                });
+            });
         }
 
         // initialize with current date
@@ -276,12 +337,32 @@
 
             // Read headers
             const headerCells = Array.from(table.querySelectorAll('thead th')).map(th => th.innerText.trim());
+            const numCols = headerCells.length;
+
+            // Title row (centered across all columns)
+            const titleText = 'Faculty Attendance Report';
+            const titleRow = sheet.addRow([titleText]);
+            sheet.mergeCells(1, 1, 1, numCols);
+            titleRow.getCell(1).font = { bold: true, size: 16, color: { argb: 'FF000000' } };
+            titleRow.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+            titleRow.height = 24;
+
+            // Date row (DD-MM-YYYY) under the title
+            const ymd = datePicker.value || '';
+            const parts = (ymd || '').split('-');
+            const prettyDate = parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : ymd;
+            const dateRow = sheet.addRow([`Date: ${prettyDate}`]);
+            sheet.mergeCells(2, 1, 2, numCols);
+            dateRow.getCell(1).font = { bold: true, size: 12, color: { argb: 'FF000000' } };
+            dateRow.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+            dateRow.height = 18;
+
+            // Header row (black background, bold white text)
             sheet.addRow(headerCells);
-            // Style header: blue background, bold white text
-            const headerRow = sheet.getRow(1);
+            const headerRow = sheet.getRow(3);
             headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
             headerRow.alignment = { vertical: 'middle', horizontal: 'left' };
-            headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } }; // blue-600
+            headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF000000' } }; // black
             headerRow.height = 22;
 
             // Add body rows
@@ -307,7 +388,6 @@
             });
 
             // Dynamic column widths based on longest cell in each column
-            const numCols = headerCells.length;
             for (let i = 1; i <= numCols; i++) {
                 let maxLen = headerCells[i - 1]?.length || 10;
                 sheet.getColumn(i).eachCell({ includeEmpty: true }, cell => {
@@ -333,81 +413,100 @@
         }
 
         async function exportTableToPdf() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
 
-            // Sanitize helper to avoid PDF header garbling (non-breaking hyphen, en/em dashes, zero-width chars)
-            const sanitize = (text) => {
-                if (!text) return '';
-                return text
-                    .replace(/[\u200B-\u200D\uFEFF]/g, '') // zero-width chars
-                    .replace(/[\u2010\u2011\u2012\u2013\u2014\u2212]/g, '-') // various dashes to ASCII hyphen
-                    .replace(/\s+/g, ' ') // collapse spaces
-                    .trim();
-            };
+                // Sanitize helper to avoid PDF header garbling
+                const sanitize = (text) => {
+                    if (!text) return '';
+                    return text
+                        .replace(/[\u200B-\u200D\uFEFF]/g, '')
+                        .replace(/[\u2010\u2011\u2012\u2013\u2014\u2212]/g, '-')
+                        .replace(/\s+/g, ' ')
+                        .trim();
+                };
 
-            const logoUrl = "{{ url_for('static', filename='images/logo-removebg-preview.png') }}";
-            async function loadImageAsDataUrl(url) {
-                try {
-                    const res = await fetch(url);
-                    const blob = await res.blob();
-                    return await new Promise((resolve) => {
-                        const reader = new FileReader();
-                        reader.onload = () => resolve(reader.result);
-                        reader.readAsDataURL(blob);
-                    });
-                } catch (e) {
-                    return null;
+                const logoUrl = "{{ url_for('static', filename='images/logo-removebg-preview.png') }}";
+                async function loadImageAsDataUrl(url) {
+                    try {
+                        const res = await fetch(url);
+                        const blob = await res.blob();
+                        return await new Promise((resolve) => {
+                            const reader = new FileReader();
+                            reader.onload = () => resolve(reader.result);
+                            reader.readAsDataURL(blob);
+                        });
+                    } catch (e) { return null; }
                 }
+
+                // Header layout
+                const marginX = 40;
+                const topY = 40;
+                let currentY = topY;
+                const logoDataUrl = await loadImageAsDataUrl(logoUrl);
+                const logoHeight = 48;
+                let logoWidth = 72; // fallback conservative width
+                if (logoDataUrl) {
+                    try {
+                        // Compute width preserving aspect
+                        await new Promise((resolve) => {
+                            const img = new Image();
+                            img.onload = () => {
+                                const ratio = img.naturalWidth / img.naturalHeight || 1.5;
+                                logoWidth = Math.round(logoHeight * ratio);
+                                resolve();
+                            };
+                            img.src = logoDataUrl;
+                        });
+                        doc.addImage(logoDataUrl, 'PNG', marginX, currentY, logoWidth, logoHeight);
+                    } catch (_) { /* ignore logo rendering errors */ }
+                }
+                const textX = marginX + logoWidth + 16;
+                doc.setFontSize(18);
+                doc.setFont(undefined, 'bold');
+                doc.text('Dr. B. B. Hegde First Grade College, Kundapura', textX, currentY + 22);
+                doc.setFontSize(11);
+                doc.setFont(undefined, 'normal');
+                doc.text('A Unit of Coondapur Education Society (R)', textX, currentY + 40);
+
+                // Divider line
+                doc.setDrawColor(203, 213, 225);
+                doc.setLineWidth(1);
+                doc.line(marginX, currentY + logoHeight + 12, doc.internal.pageSize.getWidth() - marginX, currentY + logoHeight + 12);
+
+                // Section title and date
+                const sectionY = currentY + logoHeight + 36;
+                doc.setFontSize(14);
+                doc.setFont(undefined, 'bold');
+                doc.text('Faculty Attendance', marginX, sectionY);
+                doc.setFontSize(11);
+                doc.setFont(undefined, 'normal');
+                const parts = (datePicker.value || '').split('-');
+                const prettyDate = parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : datePicker.value;
+                doc.text(`Date: ${prettyDate}`, marginX, sectionY + 18);
+
+                // Table
+                const table = document.getElementById('attendanceTable');
+                const head = [Array.from(table.querySelectorAll('thead th')).map(th => sanitize(th.innerText))];
+                const body = Array.from(table.querySelectorAll('tbody tr')).map(tr => Array.from(tr.querySelectorAll('td')).map(td => sanitize(td.innerText) || ''));
+                doc.autoTable({
+                    head,
+                    body,
+                    startY: sectionY + 30,
+                    theme: 'grid',
+                    styles: { fontSize: 9, cellPadding: 3, overflow: 'linebreak', lineColor: [0,0,0], lineWidth: 0.5 },
+                    // Make header grid lines visible with white vertical separators on black background
+                    headStyles: { fillColor: [0, 0, 0], textColor: 255, halign: 'left', lineColor: [255,255,255], lineWidth: 1 },
+                    tableWidth: 'auto',
+                    columnStyles: {},
+                });
+
+                doc.save(`attendance_${datePicker.value}.pdf`);
+            } catch (e) {
+                alert('Failed to generate PDF. Please try again.');
+                console.error('PDF export error:', e);
             }
-
-            // Header layout
-            const marginX = 40;
-            const topY = 40;
-            let currentY = topY;
-            const logoDataUrl = await loadImageAsDataUrl(logoUrl);
-            const logoHeight = 48;
-            const logoWidth = 48;
-            if (logoDataUrl) {
-                doc.addImage(logoDataUrl, 'PNG', marginX, currentY, logoWidth, logoHeight);
-            }
-            const textX = marginX + logoWidth + 16;
-            doc.setFontSize(18);
-            doc.setFont(undefined, 'bold');
-            doc.text('Dr. B. B. Hegde First Grade College, Kundapura', textX, currentY + 22);
-            doc.setFontSize(11);
-            doc.setFont(undefined, 'normal');
-            doc.text('A Unit of Coondapur Education Society (R)', textX, currentY + 40);
-
-            // Divider line
-            doc.setDrawColor(203, 213, 225); // slate-300
-            doc.setLineWidth(1);
-            doc.line(marginX, currentY + logoHeight + 12, doc.internal.pageSize.getWidth() - marginX, currentY + logoHeight + 12);
-
-            // Section title and date
-            const sectionY = currentY + logoHeight + 36;
-            doc.setFontSize(14);
-            doc.setFont(undefined, 'bold');
-            doc.text('Faculty Attendance', marginX, sectionY);
-            doc.setFontSize(11);
-            doc.setFont(undefined, 'normal');
-            doc.text(`Date: ${datePicker.value}`, marginX, sectionY + 18);
-            // Build data for autoTable to allow header styling
-            const table = document.getElementById('attendanceTable');
-            const head = [Array.from(table.querySelectorAll('thead th')).map(th => sanitize(th.innerText))];
-            const body = Array.from(table.querySelectorAll('tbody tr')).map(tr => Array.from(tr.querySelectorAll('td')).map(td => sanitize(td.innerText) || ''));
-            doc.autoTable({
-                head,
-                body,
-                startY: sectionY + 30,
-                theme: 'grid',
-                styles: { fontSize: 9, cellPadding: 3, overflow: 'linebreak' },
-                headStyles: { fillColor: [37, 99, 235], textColor: 255, halign: 'left' }, // blue-600
-                // Let AutoTable calculate natural widths; wrap as needed and paginate automatically
-                tableWidth: 'auto',
-                columnStyles: {},
-            });
-            doc.save(`attendance_${datePicker.value}.pdf`);
         }
 
         if (exportExcelBtn) exportExcelBtn.addEventListener('click', exportTableToExcel);
