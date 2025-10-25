@@ -1979,8 +1979,15 @@ def api_faculty_detailed_report_excel():
         }
         month_name = month_names.get(month.zfill(2), month)
         
+        # Add top heading for the entire report
+        top_heading = ws.cell(row=1, column=1, value=f"DETAILED FACULTY REPORT - {month_name}")
+        top_heading.font = Font(bold=True, size=16, color="000000")
+        top_heading.alignment = Alignment(horizontal="center", vertical="center")
+        ws.merge_cells(f'A1:D1')  # Merge across all columns
+        ws.row_dimensions[1].height = 25
+        
         # Process each faculty member
-        current_row = 1
+        current_row = 2
         
         for faculty_id in target_faculty:
             faculty_info = faculty_details.get(faculty_id, {})
@@ -2113,8 +2120,8 @@ def api_faculty_detailed_report_excel():
             
             current_row += 2  # Add spacing between faculty members
         
-        # Set column widths
-        column_widths = [15, 15, 15, 15]  # Date, Check In, Check Out, Delay
+        # Set column widths - increased for better visibility
+        column_widths = [18, 20, 20, 18]  # Date, Check In, Check Out, Delay (increased from 15)
         for i, width in enumerate(column_widths, 1):
             ws.column_dimensions[chr(64 + i)].width = width
         
@@ -2191,7 +2198,7 @@ def api_faculty_detailed_report_pdf():
         }
         month_name = month_names.get(month.zfill(2), month)
         
-        # Report title
+        # Report title - Updated to match Excel format
         report_title_style = ParagraphStyle(
             'ReportTitle',
             parent=styles['Heading2'],
@@ -2199,19 +2206,8 @@ def api_faculty_detailed_report_pdf():
             spaceAfter=12,
             alignment=1  # Center alignment
         )
-        report_title = Paragraph("Faculty Detailed Report", report_title_style)
+        report_title = Paragraph(f"DETAILED FACULTY REPORT - {month_name}", report_title_style)
         story.append(report_title)
-        
-        # Month and year
-        month_style = ParagraphStyle(
-            'MonthStyle',
-            parent=styles['Normal'],
-            fontSize=14,
-            spaceAfter=20,
-            alignment=1  # Center alignment
-        )
-        month_text = Paragraph(f"Month: {month_name} {year}", month_style)
-        story.append(month_text)
         story.append(Spacer(1, 20))
         
         # Process each faculty member
@@ -2329,8 +2325,8 @@ def api_faculty_detailed_report_pdf():
             # Add total delay row
             table_data.append(['Total Delay', '', '', _seconds_to_hhmmss(total_delay_seconds)])
             
-            # Create table
-            table = Table(table_data, colWidths=[80, 80, 80, 80])
+            # Create table with increased column widths
+            table = Table(table_data, colWidths=[100, 100, 100, 100])
             table.setStyle(TableStyle([
                 # Header styling with white borders
                 ('BACKGROUND', (0, 0), (-1, 0), colors.black),
