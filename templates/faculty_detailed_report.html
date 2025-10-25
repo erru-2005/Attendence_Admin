@@ -10,9 +10,50 @@
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
+        /* Faculty Card Styling with Dynamic Gradients */
         .faculty-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
             color: white;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); /* Default purple-blue gradient */
+        }
+        
+        .faculty-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            opacity: 1;
+            z-index: -1;
+            border-radius: 12px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.9) 0%, rgba(118, 75, 162, 1) 100%); /* Default purple-blue */
+        }
+        
+        .faculty-card {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        /* Delay-based gradient classes - Show on hover */
+        .faculty-card.excellent::before {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.9) 0%, rgba(5, 150, 105, 1) 100%) !important;
+        }
+        
+        .faculty-card.good::before {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.9) 0%, rgba(217, 119, 6, 1) 100%) !important;
+        }
+        
+        .faculty-card.poor::before {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.9) 0%, rgba(220, 38, 38, 1) 100%) !important;
+        }
+        
+        .faculty-card.na:hover::before {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.9) 0%, rgba(124, 58, 237, 1) 100%) !important;
         }
         .delay-badge {
             transition: all 0.3s ease;
@@ -28,6 +69,73 @@
         }
         .export-button {
             background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        /* Premium Absent Count Badge Styling */
+        .absent-count-container {
+            display: flex;
+            justify-content: flex-end;
+        }
+        
+        .absent-count-badge {
+            background: rgba(239, 68, 68, 0.15); /* Transparent red background */
+            border: 2px solid transparent;
+            background-clip: padding-box;
+            border-radius: 12px;
+            padding: 8px 16px;
+            display: inline-flex;
+            align-items: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: #ffffff;
+            position: relative;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+            transition: all 0.3s ease;
+            min-width: 140px;
+            justify-content: center;
+        }
+        
+        .absent-count-badge::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 12px;
+            padding: 2px;
+            background: linear-gradient(135deg, 
+                rgba(239, 68, 68, 0.8) 0%, 
+                rgba(220, 38, 38, 0.9) 25%,
+                rgba(185, 28, 28, 1) 50%,
+                rgba(220, 38, 38, 0.9) 75%,
+                rgba(239, 68, 68, 0.8) 100%);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask-composite: exclude;
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+        }
+        
+        .absent-count-badge:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4);
+            background: rgba(239, 68, 68, 0.25);
+        }
+        
+        .absent-count-badge i {
+            font-size: 16px;
+            color: #fca5a5; /* Light red for icon */
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+        }
+        
+        .absent-count-badge span {
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+        
+        .absent-count-badge #absentCount {
+            font-weight: 700;
+            color: #fef2f2; /* Very light red for the number */
+            font-size: 16px;
         }
     </style>
 </head>
@@ -128,10 +236,16 @@
                         <h3 class="text-2xl font-bold" id="facultyName">Faculty Name</h3>
                         <p class="text-lg opacity-90" id="facultyId">Faculty ID</p>
                     </div>
-                    <div class="text-right">
-                        <div class="text-sm opacity-90">Total Delay</div>
-                        <div class="text-2xl font-bold" id="totalDelay">00:00:00</div>
-                    </div>
+                     <div class="text-right">
+                         <div class="text-sm opacity-90">Total Delay</div>
+                         <div class="text-2xl font-bold" id="totalDelay">00:00:00</div>
+                         <div class="absent-count-container mt-3">
+                             <div class="absent-count-badge" id="absentCountBadge">
+                                 <i class="fas fa-user-slash mr-2"></i>
+                                 <span>Absent Count: <span id="absentCount">0</span></span>
+                             </div>
+                         </div>
+                     </div>
                 </div>
             </div>
 
@@ -218,15 +332,47 @@
             });
         }
 
+        // Helper function to convert HH:MM:SS to seconds
+        function hmsToSeconds(hms) {
+            if (!hms || hms === 'N/A' || hms === '00:00:00') return 0;
+            const parts = hms.split(':');
+            return parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2]);
+        }
+        
+        // Helper function to get delay class based on total delay
+        function getDelayClass(totalDelay) {
+            if (totalDelay === 'N/A') {
+                return 'na';
+            }
+            
+            const delaySeconds = hmsToSeconds(totalDelay);
+            if (delaySeconds <= 3600) { // ≤ 1 hour
+                return 'excellent';
+            } else if (delaySeconds <= 7200) { // ≤ 2 hours
+                return 'good';
+            } else { // > 2 hours
+                return 'poor';
+            }
+        }
+        
         // Create faculty card
         function createFacultyCard(facultyReport) {
             const template = document.getElementById('facultyCardTemplate');
             const card = template.content.cloneNode(true);
             
-            // Set faculty information
-            card.getElementById('facultyName').textContent = facultyReport.faculty_name;
-            card.getElementById('facultyId').textContent = facultyReport.faculty_id;
-            card.getElementById('totalDelay').textContent = facultyReport.total_delay;
+             // Set faculty information
+             card.getElementById('facultyName').textContent = facultyReport.faculty_name;
+             card.getElementById('facultyId').textContent = facultyReport.faculty_id;
+             card.getElementById('totalDelay').textContent = facultyReport.total_delay;
+             card.getElementById('absentCount').textContent = facultyReport.absent_count || 0;
+            
+            // Apply delay-based gradient styling
+            const cardElement = card.querySelector('.faculty-card');
+            const delayClass = getDelayClass(facultyReport.total_delay);
+            cardElement.classList.add(delayClass);
+            
+            // Debug: Log the applied class
+            console.log(`Applied class: ${delayClass} for faculty: ${facultyReport.faculty_name} with delay: ${facultyReport.total_delay}`);
             
             // Populate table
             const tableBody = card.getElementById('facultyTableBody');
@@ -259,24 +405,24 @@
             const delayBadge = row.getElementById('rowDelay');
             delayBadge.textContent = dayData.delay;
             
-            // Apply delay-based styling
+            // Apply delay-based styling with enhanced colors
             if (dayData.checkin === 'Not recorded' && dayData.checkout === 'Not recorded') {
                 // Both check-in and check-out are not recorded - show as Absent
                 delayBadge.textContent = 'Absent';
-                delayBadge.className += ' bg-red-100 text-red-800 font-semibold';
+                delayBadge.className += ' bg-red-200 text-red-900 font-bold border border-red-300';
             } else if (dayData.delay === '00:00:00') {
-                delayBadge.className += ' bg-green-100 text-green-800';
+                delayBadge.className += ' bg-emerald-200 text-emerald-900 font-semibold border border-emerald-300';
             } else if (dayData.delay === 'Not recorded' || dayData.checkin === 'Not recorded') {
-                delayBadge.className += ' bg-red-100 text-red-800';
+                delayBadge.className += ' bg-red-200 text-red-900 font-semibold border border-red-300';
             } else {
                 // Parse delay to determine color
                 const delaySeconds = parseDelayToSeconds(dayData.delay);
                 if (delaySeconds <= 3600) { // 1 hour
-                    delayBadge.className += ' bg-green-100 text-green-800';
+                    delayBadge.className += ' bg-emerald-200 text-emerald-900 font-semibold border border-emerald-300';
                 } else if (delaySeconds <= 7200) { // 2 hours
-                    delayBadge.className += ' bg-yellow-100 text-yellow-800';
+                    delayBadge.className += ' bg-amber-200 text-amber-900 font-semibold border border-amber-300';
                 } else {
-                    delayBadge.className += ' bg-red-100 text-red-800';
+                    delayBadge.className += ' bg-rose-200 text-rose-900 font-semibold border border-rose-300';
                 }
             }
             

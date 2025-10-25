@@ -1797,6 +1797,65 @@ def api_daily_attendance_report_pdf():
         return jsonify({"success": False, "error": f"Failed to export PDF: {str(e)}"})
 
 
+def detect_holiday_dates(month, year, faculty_details):
+    """Detect holiday dates where all faculty have 'Not recorded' for both check-in and check-out."""
+    from calendar import monthrange
+    days_in_month = monthrange(int(year), int(month))[1]
+    holiday_dates = []
+    
+    for day in range(1, days_in_month + 1):
+        try:
+            date_str = f"{year}-{month.zfill(2)}-{day:02d}"
+            date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+            
+            source_dir = get_attendance_dir()
+            source_file = source_dir / f"{date_str}.json"
+            
+            if not source_file.exists():
+                # No file exists for this date - consider it a holiday
+                holiday_dates.append(date_str)
+                continue
+            
+            with source_file.open('r', encoding='utf-8') as f:
+                records = json.load(f)
+            
+            # Check if ALL faculty have 'Not recorded' for both check-in and check-out
+            all_faculty_absent = True
+            
+            for faculty_id in faculty_details.keys():
+                faculty_records = [r for r in records if r.get('student_id', '').strip().upper() == faculty_id.upper()]
+                
+                if faculty_records:
+                    # Check if this faculty has any valid check-in or check-out
+                    has_valid_time = False
+                    for record in faculty_records:
+                        checkin = record.get('checkin', '').strip()
+                        checkout = record.get('checkout', '').strip()
+                        
+                        if checkin and checkin != '' and checkin != 'Not recorded':
+                            has_valid_time = True
+                            break
+                        if checkout and checkout != '' and checkout != 'Not recorded':
+                            has_valid_time = True
+                            break
+                    
+                    if has_valid_time:
+                        all_faculty_absent = False
+                        break
+                else:
+                    # No records for this faculty - they are absent
+                    continue
+            
+            if all_faculty_absent:
+                holiday_dates.append(date_str)
+                
+        except ValueError:
+            # Invalid date, skip
+            continue
+    
+    return holiday_dates
+
+
 @app.route("/faculty-detailed-report")
 def faculty_detailed_report_page():
     """Serve the faculty detailed report webpage."""
@@ -1832,6 +1891,9 @@ def api_faculty_detailed_report():
         from calendar import monthrange
         days_in_month = monthrange(int(year), int(month))[1]
         
+        # Detect holiday dates
+        holiday_dates = detect_holiday_dates(month, year, faculty_details)
+        
         # Collect data for each faculty member
         faculty_reports = []
         
@@ -1842,11 +1904,16 @@ def api_faculty_detailed_report():
             # Collect daily data for this faculty
             daily_data = []
             total_delay_seconds = 0
+            absent_count = 0
             
             for day in range(1, days_in_month + 1):
                 try:
                     date_str = f"{year}-{month.zfill(2)}-{day:02d}"
                     date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+                    
+                    # Skip holiday dates
+                    if date_str in holiday_dates:
+                        continue
                     
                     source_dir = get_attendance_dir()
                     source_file = source_dir / f"{date_str}.json"
@@ -1858,6 +1925,10 @@ def api_faculty_detailed_report():
                         'delay': '00:00:00'
                     }
                     
+                    # Initialize checkins and checkouts lists
+                    checkins = []
+                    checkouts = []
+                    
                     if source_file.exists():
                         with source_file.open('r', encoding='utf-8') as f:
                             records = json.load(f)
@@ -1866,8 +1937,6 @@ def api_faculty_detailed_report():
                         
                         if faculty_records:
                             # Find earliest check-in and latest check-out
-                            checkins = []
-                            checkouts = []
                             
                             for record in faculty_records:
                                 ci = parse_ts(record.get('checkin'))
@@ -1884,26 +1953,27 @@ def api_faculty_detailed_report():
                             if checkouts:
                                 latest_checkout = max(checkouts)
                                 day_data['checkout'] = latest_checkout.strftime('%H:%M:%S')
-                            
-                            # Calculate delay
-                            staff_type = determine_staff_type(faculty_id)
-                            delay_val = compute_daily_delay_for_records(faculty_records, date_obj, staff_type)
-                            
-                            # Check if both check-in and check-out are not recorded
-                            if not checkins and not checkouts:
-                                day_data['delay'] = 'Absent'
-                            else:
-                                day_data['delay'] = delay_val
-                            
-                            # Add to total delay
-                            if delay_val and delay_val != 'N/A':
-                                try:
-                                    delay_parts = delay_val.split(':')
-                                    if len(delay_parts) == 3:
-                                        hours, minutes, seconds = map(int, delay_parts)
-                                        total_delay_seconds += hours * 3600 + minutes * 60 + seconds
-                                except:
-                                    pass
+                    
+                    # Calculate delay
+                    staff_type = determine_staff_type(faculty_id)
+                    delay_val = compute_daily_delay_for_records(faculty_records, date_obj, staff_type)
+                    
+                    # Check if both check-in and check-out are not recorded
+                    if not checkins and not checkouts:
+                        day_data['delay'] = 'Absent'
+                        absent_count += 1
+                    else:
+                        day_data['delay'] = delay_val
+                    
+                    # Add to total delay
+                    if delay_val and delay_val != 'N/A' and day_data['delay'] != 'Absent':
+                        try:
+                            delay_parts = delay_val.split(':')
+                            if len(delay_parts) == 3:
+                                hours, minutes, seconds = map(int, delay_parts)
+                                total_delay_seconds += hours * 3600 + minutes * 60 + seconds
+                        except:
+                            pass
                     
                     daily_data.append(day_data)
                     
@@ -1920,7 +1990,8 @@ def api_faculty_detailed_report():
                 'faculty_id': faculty_id,
                 'faculty_name': faculty_name,
                 'daily_data': daily_data,
-                'total_delay': _seconds_to_hhmmss(total_delay_seconds)
+                'total_delay': _seconds_to_hhmmss(total_delay_seconds),
+                'absent_count': absent_count
             })
         
         return jsonify({
@@ -1961,6 +2032,9 @@ def api_faculty_detailed_report_excel():
         # Get all days in the month
         from calendar import monthrange
         days_in_month = monthrange(int(year), int(month))[1]
+        
+        # Detect holiday dates
+        holiday_dates = detect_holiday_dates(month, year, faculty_details)
         
         # Create Excel workbook
         from openpyxl import Workbook
@@ -2019,11 +2093,16 @@ def api_faculty_detailed_report_excel():
             
             # Collect daily data for this faculty
             total_delay_seconds = 0
+            absent_count = 0
             
             for day in range(1, days_in_month + 1):
                 try:
                     date_str = f"{year}-{month.zfill(2)}-{day:02d}"
                     date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+                    
+                    # Skip holiday dates
+                    if date_str in holiday_dates:
+                        continue
                     
                     source_dir = get_attendance_dir()
                     source_file = source_dir / f"{date_str}.json"
@@ -2031,6 +2110,10 @@ def api_faculty_detailed_report_excel():
                     checkin = 'Not recorded'
                     checkout = 'Not recorded'
                     delay = '00:00:00'
+                    
+                    # Initialize checkins and checkouts lists
+                    checkins = []
+                    checkouts = []
                     
                     if source_file.exists():
                         with source_file.open('r', encoding='utf-8') as f:
@@ -2040,8 +2123,6 @@ def api_faculty_detailed_report_excel():
                         
                         if faculty_records:
                             # Find earliest check-in and latest check-out
-                            checkins = []
-                            checkouts = []
                             
                             for record in faculty_records:
                                 ci = parse_ts(record.get('checkin'))
@@ -2060,24 +2141,25 @@ def api_faculty_detailed_report_excel():
                                 checkout = latest_checkout.strftime('%H:%M:%S')
                             
                             # Calculate delay
-                            staff_type = determine_staff_type(faculty_id)
-                            delay_val = compute_daily_delay_for_records(faculty_records, date_obj, staff_type)
+                    staff_type = determine_staff_type(faculty_id)
+                    delay_val = compute_daily_delay_for_records(faculty_records, date_obj, staff_type)
+                    
+                    # Check if both check-in and check-out are not recorded
+                    if not checkins and not checkouts:
+                        delay = 'Absent'
+                        absent_count += 1
+                    else:
+                        delay = delay_val
                             
-                            # Check if both check-in and check-out are not recorded
-                            if not checkins and not checkouts:
-                                delay = 'Absent'
-                            else:
-                                delay = delay_val
-                            
-                            # Add to total delay
-                            if delay_val and delay_val != 'N/A' and delay != 'Absent':
-                                try:
-                                    delay_parts = delay_val.split(':')
-                                    if len(delay_parts) == 3:
-                                        hours, minutes, seconds = map(int, delay_parts)
-                                        total_delay_seconds += hours * 3600 + minutes * 60 + seconds
-                                except:
-                                    pass
+                    # Add to total delay
+                    if delay_val and delay_val != 'N/A' and delay != 'Absent':
+                        try:
+                            delay_parts = delay_val.split(':')
+                            if len(delay_parts) == 3:
+                                hours, minutes, seconds = map(int, delay_parts)
+                                total_delay_seconds += hours * 3600 + minutes * 60 + seconds
+                        except:
+                            pass
                     
                     # Add row data
                     row_data = [
@@ -2107,7 +2189,7 @@ def api_faculty_detailed_report_excel():
                     # Invalid date, skip
                     pass
             
-            # Add total delay row
+            # Add total delay and absent count rows
             total_delay_cell = ws.cell(row=current_row, column=1, value="Total Delay")
             total_delay_cell.font = Font(bold=True, size=12)
             total_delay_cell.fill = PatternFill(start_color="F0F8FF", end_color="F0F8FF", fill_type="solid")
@@ -2118,10 +2200,22 @@ def api_faculty_detailed_report_excel():
             total_delay_value.fill = PatternFill(start_color="F0F8FF", end_color="F0F8FF", fill_type="solid")
             total_delay_value.alignment = Alignment(horizontal="center", vertical="center")
             
+            # Add absent count row
+            current_row += 1
+            absent_count_cell = ws.cell(row=current_row, column=1, value="Absent Count")
+            absent_count_cell.font = Font(bold=True, size=12)
+            absent_count_cell.fill = PatternFill(start_color="FFE6E6", end_color="FFE6E6", fill_type="solid")
+            absent_count_cell.alignment = Alignment(horizontal="center", vertical="center")
+            
+            absent_count_value = ws.cell(row=current_row, column=4, value=absent_count)
+            absent_count_value.font = Font(bold=True, size=12)
+            absent_count_value.fill = PatternFill(start_color="FFE6E6", end_color="FFE6E6", fill_type="solid")
+            absent_count_value.alignment = Alignment(horizontal="center", vertical="center")
+            
             current_row += 2  # Add spacing between faculty members
         
-        # Set column widths - increased for better visibility
-        column_widths = [18, 20, 20, 18]  # Date, Check In, Check Out, Delay (increased from 15)
+        # Set column widths - optimized for better readability
+        column_widths = [20, 22, 22, 18]  # Date, Check In, Check Out, Delay (increased for better fit)
         for i, width in enumerate(column_widths, 1):
             ws.column_dimensions[chr(64 + i)].width = width
         
@@ -2167,6 +2261,9 @@ def api_faculty_detailed_report_pdf():
         # Get all days in the month
         from calendar import monthrange
         days_in_month = monthrange(int(year), int(month))[1]
+        
+        # Detect holiday dates
+        holiday_dates = detect_holiday_dates(month, year, faculty_details)
         
         # Create PDF
         from reportlab.lib.pagesizes import A4
@@ -2230,11 +2327,16 @@ def api_faculty_detailed_report_pdf():
             # Create table data for this faculty
             table_data = [['Date', 'Check In Time', 'Check Out Time', 'Delay']]
             total_delay_seconds = 0
+            absent_count = 0
             
             for day in range(1, days_in_month + 1):
                 try:
                     date_str = f"{year}-{month.zfill(2)}-{day:02d}"
                     date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+                    
+                    # Skip holiday dates
+                    if date_str in holiday_dates:
+                        continue
                     
                     source_dir = get_attendance_dir()
                     source_file = source_dir / f"{date_str}.json"
@@ -2242,6 +2344,10 @@ def api_faculty_detailed_report_pdf():
                     checkin = 'Not recorded'
                     checkout = 'Not recorded'
                     delay = '00:00:00'
+                    
+                    # Initialize checkins and checkouts lists
+                    checkins = []
+                    checkouts = []
                     
                     if source_file.exists():
                         with source_file.open('r', encoding='utf-8') as f:
@@ -2251,8 +2357,6 @@ def api_faculty_detailed_report_pdf():
                         
                         if faculty_records:
                             # Find earliest check-in and latest check-out
-                            checkins = []
-                            checkouts = []
                             
                             for record in faculty_records:
                                 ci = parse_ts(record.get('checkin'))
@@ -2271,24 +2375,25 @@ def api_faculty_detailed_report_pdf():
                                 checkout = latest_checkout.strftime('%H:%M:%S')
                             
                             # Calculate delay
-                            staff_type = determine_staff_type(faculty_id)
-                            delay_val = compute_daily_delay_for_records(faculty_records, date_obj, staff_type)
+                    staff_type = determine_staff_type(faculty_id)
+                    delay_val = compute_daily_delay_for_records(faculty_records, date_obj, staff_type)
+                    
+                    # Check if both check-in and check-out are not recorded
+                    if not checkins and not checkouts:
+                        delay = 'Absent'
+                        absent_count += 1
+                    else:
+                        delay = delay_val
                             
-                            # Check if both check-in and check-out are not recorded
-                            if not checkins and not checkouts:
-                                delay = 'Absent'
-                            else:
-                                delay = delay_val
-                            
-                            # Add to total delay
-                            if delay_val and delay_val != 'N/A' and delay != 'Absent':
-                                try:
-                                    delay_parts = delay_val.split(':')
-                                    if len(delay_parts) == 3:
-                                        hours, minutes, seconds = map(int, delay_parts)
-                                        total_delay_seconds += hours * 3600 + minutes * 60 + seconds
-                                except:
-                                    pass
+                    # Add to total delay
+                    if delay_val and delay_val != 'N/A' and delay != 'Absent':
+                        try:
+                            delay_parts = delay_val.split(':')
+                            if len(delay_parts) == 3:
+                                hours, minutes, seconds = map(int, delay_parts)
+                                total_delay_seconds += hours * 3600 + minutes * 60 + seconds
+                        except:
+                            pass
                     
                     # Add row data with special formatting for "Absent"
                     if delay == 'Absent':
@@ -2322,11 +2427,13 @@ def api_faculty_detailed_report_pdf():
                     # Invalid date, skip
                     pass
             
-            # Add total delay row
+            # Add total delay and absent count rows
             table_data.append(['Total Delay', '', '', _seconds_to_hhmmss(total_delay_seconds)])
+            table_data.append(['Absent Count', '', '', str(absent_count)])
             
-            # Create table with increased column widths
-            table = Table(table_data, colWidths=[100, 100, 100, 100])
+            # Create table with optimized A4 width (595 points total)
+            # Date: 120, Check In: 150, Check Out: 150, Delay: 120 = 540 points (leaving margins)
+            table = Table(table_data, colWidths=[120, 150, 150, 120])
             table.setStyle(TableStyle([
                 # Header styling with white borders
                 ('BACKGROUND', (0, 0), (-1, 0), colors.black),
@@ -2334,8 +2441,10 @@ def api_faculty_detailed_report_pdf():
                 ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
                 ('FONTSIZE', (0, 0), (-1, 0), 12),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
-                ('TOPPADDING', (0, 0), (-1, 0), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('TOPPADDING', (0, 0), (-1, 0), 12),
+                ('LEFTPADDING', (0, 0), (-1, 0), 8),
+                ('RIGHTPADDING', (0, 0), (-1, 0), 8),
                 # White borders for header columns
                 ('LINEBEFORE', (0, 0), (0, 0), 2, colors.white),
                 ('LINEAFTER', (0, 0), (0, 0), 2, colors.white),
@@ -2348,18 +2457,28 @@ def api_faculty_detailed_report_pdf():
                 # Data row styling
                 ('BACKGROUND', (0, 1), (-1, -1), colors.white),
                 ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.lightgrey]),
-                ('ALIGN', (0, 1), (-1, -1), 'CENTER'),
                 ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-                ('FONTSIZE', (0, 1), (-1, -1), 10),
-                ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
-                ('TOPPADDING', (0, 1), (-1, -1), 8),
+                ('FONTSIZE', (0, 1), (-1, -1), 11),
+                ('BOTTOMPADDING', (0, 1), (-1, -1), 10),
+                ('TOPPADDING', (0, 1), (-1, -1), 10),
+                ('LEFTPADDING', (0, 1), (-1, -1), 8),
+                ('RIGHTPADDING', (0, 1), (-1, -1), 8),
+                # Column alignment - Date left, Times and Delay center
+                ('ALIGN', (0, 1), (0, -1), 'LEFT'),   # Date column - left aligned
+                ('ALIGN', (1, 1), (2, -1), 'CENTER'), # Time columns - center aligned
+                ('ALIGN', (3, 1), (3, -1), 'CENTER'), # Delay column - center aligned
                 # Borders
                 ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
                 # Total row styling - center aligned
-                ('BACKGROUND', (0, -1), (-1, -1), colors.lightblue),
+                ('BACKGROUND', (0, -2), (-1, -2), colors.lightblue),  # Total Delay row
+                ('FONTNAME', (0, -2), (-1, -2), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, -2), (-1, -2), 11),
+                ('ALIGN', (0, -2), (-1, -2), 'CENTER'),
+                # Absent count row styling - light red background
+                ('BACKGROUND', (0, -1), (-1, -1), colors.lightcoral),  # Absent Count row
                 ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
                 ('FONTSIZE', (0, -1), (-1, -1), 11),
-                ('ALIGN', (0, -1), (-1, -1), 'CENTER'),  # Center align total row
+                ('ALIGN', (0, -1), (-1, -1), 'CENTER'),
             ]))
             
             story.append(table)
