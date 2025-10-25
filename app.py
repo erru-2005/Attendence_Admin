@@ -1338,9 +1338,10 @@ def api_monthly_delay_report_pdf():
             ])
         
         # Create table with larger fonts and professional styling
-        table = Table(table_data, colWidths=[90, 350, 90])  # Better column widths
+        # repeatRows=1 ensures header is repeated on each page when table breaks
+        table = Table(table_data, colWidths=[90, 350, 90], repeatRows=1)  # Better column widths
         table.setStyle(TableStyle([
-            # Header styling - black background with white text
+            # Header styling - black background with white text (applies to all header rows including repeated ones)
             ('BACKGROUND', (0, 0), (-1, 0), colors.black),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('ALIGN', (0, 0), (-1, 0), 'LEFT'),  # Left align headers
