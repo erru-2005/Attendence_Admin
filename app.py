@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import json
+import math
 import os
-import shutil
-import threading
-import time as time_module
 from datetime import datetime, time as dt_time
 from pathlib import Path
 from typing import List, Dict, Any, Tuple
@@ -13,24 +11,81 @@ from flask import Flask, jsonify, render_template, request, redirect, url_for, s
 
 
 app = Flask(__name__)
+
+
+def create_pdf_header():
+    """PDF Header Design Code"""
+    
+    # Get styles
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    styles = getSampleStyleSheet()
+    
+    # Define header styles
+    header_title = ParagraphStyle(
+        'HeaderTitle', 
+        parent=styles['Title'], 
+        alignment=0, 
+        fontSize=16, 
+        leading=19
+    )
+    header_sub = ParagraphStyle(
+        'HeaderSub', 
+        parent=styles['Normal'], 
+        alignment=0, 
+        fontSize=10, 
+        leading=12
+    )
+    
+    # Logo setup
+    try:
+        from flask import current_app
+        from pathlib import Path
+        logo_path = Path(__file__).parent / "static" / "images" / "logo-removebg-preview.png"
+        if logo_path.exists():
+            from reportlab.platypus import Image
+            from reportlab.lib.units import mm
+            logo_img = Image(str(logo_path))
+            logo_img._restrictSize(26*mm, 26*mm)
+        else:
+            logo_img = ''
+    except Exception:
+        logo_img = ''
+    
+    # Header text
+    from reportlab.platypus import Paragraph
+    header_text = [
+        Paragraph('Dr. B. B. Hegde First Grade College, Kundapura', header_title),
+        Paragraph('A Unit of Coondapur Education Society (R)', header_sub)
+    ]
+    
+    # Create header table
+    from reportlab.platypus import Table, TableStyle
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import mm
+    from reportlab.lib import colors
+    
+    header_table = Table(
+        [[logo_img, header_text]], 
+        colWidths=[26*mm, (A4[0] - (18*mm + 18*mm) - 26*mm)]
+    )
+    
+    # Header table styling
+    header_table.setStyle(TableStyle([
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('LINEBELOW', (0,0), (-1,0), 0.75, colors.lightgrey),
+        ('LEFTPADDING', (0,0), (-1,-1), 0),
+        ('RIGHTPADDING', (0,0), (-1,-1), 0),
+        ('TOPPADDING', (0,0), (-1,-1), 0),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+    ]))
+    
+    return header_table
 # Simple secret key for session management; replace via ENV in production
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 
 
 # Configure via environment variable or default path; can be overridden at runtime by querystring
-ATTENDANCE_DIR = os.environ.get("ATTENDANCE_DIR", r"E:\webface_gui\Attendence_System\database\attendance")
-
-# JSON storage directory for synced attendance data - DYNAMIC and NON-CHANGEABLE
-# Always relative to current working directory
-JSON_ATTENDANCE_DIR = Path.cwd() / "JSON" / "Attendence"
-JSON_ATTENDANCE_DIR.mkdir(parents=True, exist_ok=True)
-
-# File tracking for change detection - DYNAMIC and NON-CHANGEABLE
-TRACKING_FILE = Path.cwd() / "JSON" / "file_tracking.json"
-
-# Background monitoring
-monitoring_active = False
-monitor_thread = None
+ATTENDANCE_DIR = os.environ.get("ATTENDANCE_DIR", r"F:\\Graahi Reports_new\\Graahi Reports\\attendance")
 
 
 def get_attendance_dir() -> Path:
@@ -66,108 +121,17 @@ def is_logged_in() -> bool:
     return bool(session.get("logged_in"))
 
 
-def load_file_tracking() -> Dict[str, str]:
-    """Load file modification tracking data."""
-    if not TRACKING_FILE.exists():
-        return {}
-    try:
-        with TRACKING_FILE.open("r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return {}
 
 
-def save_file_tracking(tracking_data: Dict[str, str]) -> None:
-    """Save file modification tracking data."""
-    try:
-        with TRACKING_FILE.open("w", encoding="utf-8") as f:
-            json.dump(tracking_data, f, indent=2)
-    except Exception:
-        pass
-
-
-def get_file_modification_time(file_path: Path) -> str:
-    """Get file modification time as formatted string DD-MM-YYYY HH:MM:SS."""
-    try:
-        mtime = file_path.stat().st_mtime
-        dt = datetime.fromtimestamp(mtime)
-        return dt.strftime("%d-%m-%Y %H:%M:%S")
-    except Exception:
-        return "01-01-1970 00:00:00"
-
-
-def sync_attendance_files() -> Dict[str, Any]:
-    """Sync attendance files from source to JSON directory."""
-    source_dir = Path(ATTENDANCE_DIR)
-    if not source_dir.exists():
-        return {"success": False, "error": f"Source directory not found: {ATTENDANCE_DIR}"}
-    
-    tracking_data = load_file_tracking()
-    synced_files = []
-    updated_files = []
-    errors = []
-    
-    try:
-        # Get all JSON files from source directory
-        source_files = list(source_dir.glob("*.json"))
-        
-        for source_file in source_files:
-            try:
-                # Get file modification time
-                current_mtime = get_file_modification_time(source_file)
-                file_key = source_file.name
-                
-                # Check if file has been modified
-                last_mtime = tracking_data.get(file_key, "01-01-1970 00:00:00")
-                
-                if current_mtime > last_mtime:
-                    # File has been modified or is new
-                    dest_file = JSON_ATTENDANCE_DIR / source_file.name
-                    
-                    # Copy file to JSON directory
-                    shutil.copy2(source_file, dest_file)
-                    
-                    # Annotate delay for that date file after copy
-                    try:
-                        annotate_file_with_delay(dest_file)
-                    except Exception:
-                        # non-fatal
-                        pass
-                    
-                    # Update tracking data
-                    tracking_data[file_key] = current_mtime
-                    
-                    if last_mtime != "01-01-1970 00:00:00":
-                        updated_files.append(file_key)
-                    else:
-                        synced_files.append(file_key)
-                        
-            except Exception as e:
-                errors.append(f"Error processing {source_file.name}: {str(e)}")
-        
-        # Save updated tracking data
-        save_file_tracking(tracking_data)
-        
-        return {
-            "success": True,
-            "synced_files": synced_files,
-            "updated_files": updated_files,
-            "total_processed": len(source_files),
-            "errors": errors
-        }
-        
-    except Exception as e:
-        return {"success": False, "error": f"Sync failed: {str(e)}"}
-
-
-def get_attendance_from_json(date_str: str) -> List[Dict[str, Any]]:
-    """Read attendance data from JSON directory."""
-    json_file = JSON_ATTENDANCE_DIR / f"{date_str}.json"
-    if not json_file.exists():
+def get_attendance_from_source(date_str: str) -> List[Dict[str, Any]]:
+    """Read attendance data directly from source directory."""
+    source_dir = get_attendance_dir()
+    source_file = source_dir / f"{date_str}.json"
+    if not source_file.exists():
         return []
     
     try:
-        with json_file.open("r", encoding="utf-8") as f:
+        with source_file.open("r", encoding="utf-8") as f:
             data = json.load(f)
             if isinstance(data, list):
                 return data
@@ -207,7 +171,7 @@ def determine_staff_type(faculty_id: str) -> str:
     details = load_faculty_details().get((faculty_id or '').strip().upper()) or {}
     category = (details.get('category') or '').strip().lower()
     department = (details.get('department') or '').strip().lower()
-    if 'teaching' in category:
+    if category == 'teaching faculty':
         return 'teaching'
     if 'non-teaching' in category:
         if 'computer applications' in department:
@@ -285,14 +249,15 @@ def compute_daily_delay_for_records(records: List[Dict[str, Any]], date_obj: dat
     if earliest_in:
         deadline_dt = datetime.combine(earliest_in.date(), checkin_deadline)
         if earliest_in > deadline_dt:
-            late_seconds = int((earliest_in - deadline_dt).total_seconds())
+            late_seconds = round((earliest_in - deadline_dt).total_seconds())
     if not checkouts:
-        return 'N/A'
+        # If no checkouts, return only check-in delay (not 'N/A')
+        return _seconds_to_hhmmss(late_seconds)
     latest_out = max(checkouts)
     required_dt = datetime.combine(latest_out.date(), checkout_after)
     early_leave_seconds = 0
     if latest_out < required_dt:
-        early_leave_seconds = int((required_dt - latest_out).total_seconds())
+        early_leave_seconds = int(math.ceil((required_dt - latest_out).total_seconds()))
     return _seconds_to_hhmmss(late_seconds + early_leave_seconds)
 
 def annotate_file_with_delay(json_file: Path) -> None:
@@ -331,10 +296,11 @@ def annotate_file_with_delay(json_file: Path) -> None:
         pass
 
 def annotate_all_existing_files() -> Dict[str, Any]:
-    """Annotate all JSON files currently present in JSON_ATTENDANCE_DIR."""
+    """Annotate all JSON files currently present in source directory."""
     results = {"annotated": [], "errors": []}
     try:
-        for jf in JSON_ATTENDANCE_DIR.glob('*.json'):
+        source_dir = get_attendance_dir()
+        for jf in source_dir.glob('*.json'):
             try:
                 annotate_file_with_delay(jf)
                 results["annotated"].append(jf.name)
@@ -344,70 +310,6 @@ def annotate_all_existing_files() -> Dict[str, Any]:
         results["errors"].append({"file": "*", "error": str(e)})
     return results
 
-def monitor_directory_changes():
-    """Background thread to monitor source directory for changes."""
-    global monitoring_active
-    
-    print("Starting directory monitoring...")
-    source_dir = Path(ATTENDANCE_DIR)
-    
-    while monitoring_active:
-        try:
-            if source_dir.exists():
-                # Check for changes and sync if needed
-                result = sync_attendance_files()
-                if result.get("success") and (result.get("synced_files") or result.get("updated_files")):
-                    print(f"Auto-sync completed: {len(result.get('synced_files', []))} new, {len(result.get('updated_files', []))} updated")
-            
-            # Sleep for 30 seconds before next check
-            time_module.sleep(30)
-            
-        except Exception as e:
-            print(f"Error in directory monitoring: {e}")
-            time_module.sleep(60)  # Wait longer on error
-    
-    print("Directory monitoring stopped.")
-
-
-def start_monitoring():
-    """Start background monitoring thread."""
-    global monitoring_active, monitor_thread
-    
-    if not monitoring_active:
-        monitoring_active = True
-        monitor_thread = threading.Thread(target=monitor_directory_changes, daemon=True)
-        monitor_thread.start()
-        print("Background monitoring started.")
-
-
-def stop_monitoring():
-    """Stop background monitoring thread."""
-    global monitoring_active, monitor_thread
-    
-    if monitoring_active:
-        monitoring_active = False
-        if monitor_thread:
-            monitor_thread.join(timeout=5)
-        print("Background monitoring stopped.")
-
-
-def initial_sync():
-    """Perform initial sync on server start."""
-    print("Performing initial sync...")
-    result = sync_attendance_files()
-    if result.get("success"):
-        print(f"Initial sync completed: {result.get('total_processed', 0)} files processed")
-        if result.get("synced_files"):
-            print(f"New files synced: {result['synced_files']}")
-        if result.get("updated_files"):
-            print(f"Updated files: {result['updated_files']}")
-        # After syncing, ensure all JSON files have delay annotated
-        ann = annotate_all_existing_files()
-        print(f"Delay annotated for {len(ann.get('annotated', []))} files at startup")
-    else:
-        print(f"Initial sync failed: {result.get('error', 'Unknown error')}")
-    
-    return result
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -440,100 +342,2058 @@ def index():
 @app.route("/api/attendance")
 def api_attendance():
     if not is_logged_in():
-        return redirect(url_for("login"))
+        return jsonify({"error": "Not authenticated"}), 401
     # Use current date by default
     date_str = request.args.get("date")
     if not date_str:
         date_str = datetime.now().strftime("%Y-%m-%d")
 
-    # Try to get data from JSON directory first
-    rows = get_attendance_from_json(date_str)
+    # Get data directly from source directory
+    rows = get_attendance_from_source(date_str)
     
-    # If not found in JSON directory, fallback to source directory
-    if not rows:
-        base_dir = get_attendance_dir()
-        rows = read_attendance_for_date(base_dir, date_str)
+    # Calculate delays for all records
+    if rows:
+        try:
+            date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+            # Group records by faculty ID
+            by_id = {}
+            for row in rows:
+                sid = (row.get('student_id') or '').strip().upper()
+                if sid:
+                    by_id.setdefault(sid, []).append(row)
+            
+            # Calculate delay for each faculty member
+            for sid, faculty_rows in by_id.items():
+                staff_type = determine_staff_type(sid)
+                delay_val = compute_daily_delay_for_records(faculty_rows, date_obj, staff_type)
+                for r in faculty_rows:
+                    r['delay'] = delay_val
+        except Exception as e:
+            print(f"Error calculating delays: {e}")
 
-    # Backend uses provided keys from files (student_id etc.),
-    # but the UI labels them as Faculty as per requirement.
-    return jsonify(rows)
+    # Get all faculty members from faculty_detail.json
+    faculty_details = load_faculty_details()
+    
+    # Create a comprehensive list with all faculty members
+    all_faculty_records = []
+    
+    # First, add existing attendance records with normalized case
+    for row in rows:
+        # Normalize student_id to uppercase for consistency
+        if 'student_id' in row:
+            row['student_id'] = row['student_id'].upper()
+        all_faculty_records.append(row)
+    
+    # Then, add faculty members who don't have attendance records
+    existing_faculty_ids = {row.get('student_id', '').strip().upper() for row in rows}
+    
+    for faculty_id, faculty_info in faculty_details.items():
+        if faculty_id.upper() not in existing_faculty_ids:
+            # Create a record for faculty with no attendance data
+            record = {
+                'student_id': faculty_id,
+                'name': faculty_info.get('name', ''),
+                'checkin': '',
+                'checkout': '',
+                'delay': 'N/A'
+            }
+            all_faculty_records.append(record)
+    
+    # Apply refined delay display logic (same as PDF)
+    for record in all_faculty_records:
+        # Format check-in time
+        checkin = record.get('checkin', '')
+        if checkin and checkin != '':
+            try:
+                dt = parse_ts(checkin)
+                if dt:
+                    checkin_formatted = dt.strftime('%H:%M:%S')
+                else:
+                    checkin_formatted = 'Not recorded'
+            except:
+                checkin_formatted = 'Not recorded'
+        else:
+            checkin_formatted = 'Not recorded'
+        
+        # Format check-out time
+        checkout = record.get('checkout', '')
+        if checkout and checkout != '':
+            try:
+                dt = parse_ts(checkout)
+                if dt:
+                    checkout_formatted = dt.strftime('%H:%M:%S')
+                else:
+                    checkout_formatted = 'Not recorded'
+            except:
+                checkout_formatted = 'Not recorded'
+        else:
+            checkout_formatted = 'Not recorded'
+        
+        # Apply refined delay display logic
+        delay = record.get('delay', '')
+        if checkin_formatted == 'Not recorded':
+            # If no check-in at all, show as Absent
+            record['delay'] = 'Absent'
+        elif checkout_formatted == 'Not recorded':
+            # If has check-in but no check-out, show as Absent
+            record['delay'] = 'Absent'
+        elif delay and delay != '' and delay != 'N/A':
+            # If both check-in and check-out present, show calculated delay
+            record['delay'] = delay
+        else:
+            # Fallback case - both present but no delay calculated
+            record['delay'] = '00:00:00'
+    
+    # Sort by faculty ID
+    all_faculty_records.sort(key=lambda x: (x.get('student_id') or '').strip().upper())
+    
+    return jsonify(all_faculty_records)
 
 
-@app.route("/api/sync")
-def api_sync():
-    """Sync attendance files from source to JSON directory."""
+
+
+@app.route("/api/attendance/update", methods=["POST"])
+def api_update_attendance():
+    """Update attendance record with new check-in/check-out times."""
+    if not is_logged_in():
+        return jsonify({"success": False, "error": "Not authenticated"}), 401
+    
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "error": "No data provided"})
+        
+        faculty_id = data.get('faculty_id', '').strip().upper()
+        date_str = data.get('date', '').strip()
+        
+        # Only process checkin if it exists in the request data
+        new_checkin = None
+        if 'checkin' in data:
+            new_checkin = data.get('checkin', '').strip() if data.get('checkin') else ''
+        
+        # Only process checkout if it exists in the request data  
+        new_checkout = None
+        if 'checkout' in data:
+            new_checkout = data.get('checkout', '').strip() if data.get('checkout') else ''
+        
+        if not faculty_id or not date_str:
+            return jsonify({"success": False, "error": "Faculty ID and date are required"})
+        
+        # Load the attendance file directly from source
+        source_dir = get_attendance_dir()
+        source_file = source_dir / f"{date_str}.json"
+        if not source_file.exists():
+            return jsonify({"success": False, "error": f"Attendance file for {date_str} not found"})
+        
+        # Read current data
+        with source_file.open('r', encoding='utf-8') as f:
+            records = json.load(f)
+        
+        if not isinstance(records, list):
+            return jsonify({"success": False, "error": "Invalid data format"})
+        
+        # Find and update the specific record
+        updated = False
+        record_found = False
+        
+        # If we're updating check-in, find the record that has the current check-in time
+        # If we're updating check-out, find the record that has the current check-out time
+        target_record = None
+        
+        if new_checkin is not None:
+            # Find record with matching check-in time (or empty check-in if we're adding one)
+            current_checkin_time = data.get('current_checkin', '')
+            for record in records:
+                if record.get('student_id', '').strip().upper() == faculty_id:
+                    record_checkin = record.get('checkin', '')
+                    # Convert to time-only format for comparison
+                    record_checkin_time = ''
+                    if record_checkin:
+                        try:
+                            dt = parse_ts(record_checkin)
+                            if dt:
+                                record_checkin_time = dt.strftime("%H:%M:%S")
+                        except:
+                            pass
+                    
+                    # Match if current check-in time matches what we're trying to edit
+                    if record_checkin_time == current_checkin_time:
+                        target_record = record
+                        break
+        elif new_checkout is not None:
+            # Find record with matching check-out time (or empty check-out if we're adding one)
+            current_checkout_time = data.get('current_checkout', '')
+            current_checkin_time = data.get('current_checkin', '')
+            
+            for record in records:
+                if record.get('student_id', '').strip().upper() == faculty_id:
+                    record_checkout = record.get('checkout', '')
+                    record_checkin = record.get('checkin', '')
+                    
+                    # Convert to time-only format for comparison
+                    record_checkout_time = ''
+                    if record_checkout:
+                        try:
+                            dt = parse_ts(record_checkout)
+                            if dt:
+                                record_checkout_time = dt.strftime("%H:%M:%S")
+                        except:
+                            pass
+                    
+                    record_checkin_time = ''
+                    if record_checkin:
+                        try:
+                            dt = parse_ts(record_checkin)
+                            if dt:
+                                record_checkin_time = dt.strftime("%H:%M:%S")
+                        except:
+                            pass
+                    
+                    # Match if current check-out time matches AND check-in time matches (if provided)
+                    checkout_match = record_checkout_time == current_checkout_time
+                    checkin_match = True  # Default to True if no current_checkin provided
+                    if current_checkin_time:
+                        checkin_match = record_checkin_time == current_checkin_time
+                    
+                    if checkout_match and checkin_match:
+                        target_record = record
+                        break
+        
+        # If no specific record found, fall back to first match (for backward compatibility)
+        if not target_record:
+            for record in records:
+                if record.get('student_id', '').strip().upper() == faculty_id:
+                    target_record = record
+                    break
+        
+        if target_record:
+            record_found = True
+            # Update check-in time if provided
+            if new_checkin is not None:
+                if new_checkin.strip() == '':
+                    # Clear the check-in time
+                    target_record['checkin'] = ''
+                else:
+                    # Convert HH:MM:SS format to full datetime
+                    try:
+                        date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+                        time_obj = datetime.strptime(new_checkin, "%H:%M:%S").time()
+                        full_datetime = datetime.combine(date_obj, time_obj)
+                        target_record['checkin'] = full_datetime.isoformat()
+                    except ValueError:
+                        return jsonify({"success": False, "error": "Invalid check-in time format. Use HH:MM:SS"})
+            
+            # Update check-out time if provided
+            if new_checkout is not None:
+                if new_checkout.strip() == '':
+                    # Clear the check-out time
+                    target_record['checkout'] = ''
+                else:
+                    try:
+                        date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+                        time_obj = datetime.strptime(new_checkout, "%H:%M:%S").time()
+                        full_datetime = datetime.combine(date_obj, time_obj)
+                        target_record['checkout'] = full_datetime.isoformat()
+                    except ValueError:
+                        return jsonify({"success": False, "error": "Invalid check-out time format. Use HH:MM:SS"})
+            
+            updated = True
+        
+        # If record not found, create a new one
+        if not record_found:
+            # Get faculty details
+            faculty_details = load_faculty_details()
+            faculty_info = faculty_details.get(faculty_id.upper(), {})
+            
+            # Create new record
+            new_record = {
+                'student_id': faculty_id,
+                'name': faculty_info.get('name', ''),
+                'checkin': '',
+                'checkout': '',
+                'delay': 'N/A'
+            }
+            
+            # Update check-in time if provided
+            if new_checkin is not None:
+                if new_checkin.strip() == '':
+                    # Keep empty check-in time
+                    new_record['checkin'] = ''
+                else:
+                    try:
+                        date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+                        time_obj = datetime.strptime(new_checkin, "%H:%M:%S").time()
+                        full_datetime = datetime.combine(date_obj, time_obj)
+                        new_record['checkin'] = full_datetime.isoformat()
+                    except ValueError:
+                        return jsonify({"success": False, "error": "Invalid check-in time format. Use HH:MM:SS"})
+            
+            # Update check-out time if provided
+            if new_checkout is not None:
+                if new_checkout.strip() == '':
+                    # Keep empty check-out time
+                    new_record['checkout'] = ''
+                else:
+                    try:
+                        date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+                        time_obj = datetime.strptime(new_checkout, "%H:%M:%S").time()
+                        full_datetime = datetime.combine(date_obj, time_obj)
+                        new_record['checkout'] = full_datetime.isoformat()
+                    except ValueError:
+                        return jsonify({"success": False, "error": "Invalid check-out time format. Use HH:MM:SS"})
+            
+            # Add new record to the list
+            records.append(new_record)
+            updated = True
+        
+        # Sort records by faculty ID, then by check-in time
+        records.sort(key=lambda x: (
+            (x.get('student_id') or '').strip().upper(),
+            x.get('checkin', '') or ''
+        ))
+        
+        # Recalculate delays for this faculty
+        date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+        faculty_records = [r for r in records if r.get('student_id', '').strip().upper() == faculty_id.upper()]
+        if faculty_records:
+            staff_type = determine_staff_type(faculty_id)
+            delay_val = compute_daily_delay_for_records(faculty_records, date_obj, staff_type)
+            # Update delay for all records of this faculty
+            for record in records:
+                if record.get('student_id', '').strip().upper() == faculty_id:
+                    record['delay'] = delay_val
+        
+        # Save updated data directly to source file
+        with source_file.open('w', encoding='utf-8') as f:
+            json.dump(records, f, ensure_ascii=False, indent=2)
+        
+        return jsonify({"success": True, "message": "Attendance updated successfully"})
+        
+    except Exception as e:
+        return jsonify({"success": False, "error": f"Failed to update attendance: {str(e)}"})
+
+
+@app.route("/api/attendance/delete", methods=["POST"])
+def api_delete_attendance():
+    """Delete attendance record for a specific faculty member and date."""
+    if not is_logged_in():
+        return jsonify({"success": False, "error": "Not authenticated"}), 401
+    
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "error": "No data provided"})
+        
+        faculty_id = data.get('faculty_id', '').strip().upper()
+        date_str = data.get('date', '').strip()
+        
+        if not faculty_id or not date_str:
+            return jsonify({"success": False, "error": "Faculty ID and date are required"})
+        
+        # Load the attendance file directly from source
+        source_dir = get_attendance_dir()
+        source_file = source_dir / f"{date_str}.json"
+        if not source_file.exists():
+            return jsonify({"success": False, "error": f"Attendance file for {date_str} not found"})
+        
+        # Read current data
+        with source_file.open('r', encoding='utf-8') as f:
+            records = json.load(f)
+        
+        if not isinstance(records, list):
+            return jsonify({"success": False, "error": "Invalid data format"})
+        
+        # Find and remove all records for this faculty member
+        original_count = len(records)
+        records = [r for r in records if r.get('student_id', '').strip().upper() != faculty_id]
+        removed_count = original_count - len(records)
+        
+        if removed_count == 0:
+            return jsonify({"success": False, "error": f"No records found for faculty {faculty_id} on {date_str}"})
+        
+        # Create a placeholder record for the deleted faculty member
+        faculty_details = load_faculty_details()
+        faculty_info = faculty_details.get(faculty_id.upper(), {})
+        
+        placeholder_record = {
+            'student_id': faculty_id,
+            'name': faculty_info.get('name', ''),
+            'checkin': '',
+            'checkout': '',
+            'delay': 'N/A'
+        }
+        
+        # Insert the placeholder record in the correct sorted position
+        records.append(placeholder_record)
+        records.sort(key=lambda x: (x.get('student_id') or '').strip().upper())
+        
+        # Save updated data directly to source file
+        with source_file.open('w', encoding='utf-8') as f:
+            json.dump(records, f, ensure_ascii=False, indent=2)
+        
+        return jsonify({
+            "success": True, 
+            "message": f"Successfully deleted {removed_count} record(s) for {faculty_id} and created placeholder record",
+            "deleted_count": removed_count,
+            "placeholder_created": True
+        })
+        
+    except Exception as e:
+        return jsonify({"success": False, "error": f"Failed to delete attendance: {str(e)}"})
+
+
+@app.route("/api/faculty-list")
+def api_faculty_list():
+    """Get list of all faculty members for dropdown."""
+    if not is_logged_in():
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    try:
+        faculty_details = load_faculty_details()
+        faculty_list = []
+        
+        for faculty_id, faculty_info in faculty_details.items():
+            faculty_list.append({
+                "id": faculty_id,
+                "name": faculty_info.get("name", "")
+            })
+        
+        # Sort by faculty ID
+        faculty_list.sort(key=lambda x: x["id"])
+        
+        return jsonify(faculty_list)
+    except Exception as e:
+        return jsonify({"error": f"Failed to load faculty list: {str(e)}"}), 500
+
+
+@app.route("/api/attendance/add", methods=["POST"])
+def api_add_attendance():
+    """Add a new attendance record for a faculty member."""
+    if not is_logged_in():
+        return jsonify({"success": False, "error": "Not authenticated"}), 401
+    
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "error": "No data provided"})
+        
+        faculty_id = data.get('faculty_id', '').strip().upper()
+        date_str = data.get('date', '').strip()
+        checkin_time = data.get('checkin', '').strip()
+        checkout_time = data.get('checkout', '').strip()
+        
+        if not faculty_id or not date_str:
+            return jsonify({"success": False, "error": "Faculty ID and date are required"})
+        
+        # Load the attendance file directly from source
+        source_dir = get_attendance_dir()
+        source_file = source_dir / f"{date_str}.json"
+        
+        # Read current data
+        records = []
+        if source_file.exists():
+            with source_file.open('r', encoding='utf-8') as f:
+                records = json.load(f)
+        
+        if not isinstance(records, list):
+            records = []
+        
+        # Get faculty details
+        faculty_details = load_faculty_details()
+        faculty_info = faculty_details.get(faculty_id.upper(), {})
+        
+        # Create new record with provided times
+        new_record = {
+            'student_id': faculty_id,
+            'name': faculty_info.get('name', ''),
+            'checkin': '',
+            'checkout': '',
+            'delay': 'N/A'
+        }
+        
+        # Set check-in time if provided
+        if checkin_time:
+            try:
+                date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+                time_obj = datetime.strptime(checkin_time, "%H:%M:%S").time()
+                full_datetime = datetime.combine(date_obj, time_obj)
+                new_record['checkin'] = full_datetime.isoformat()
+            except ValueError:
+                return jsonify({"success": False, "error": "Invalid check-in time format. Use HH:MM:SS"})
+        
+        # Set check-out time if provided
+        if checkout_time:
+            try:
+                date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+                time_obj = datetime.strptime(checkout_time, "%H:%M:%S").time()
+                full_datetime = datetime.combine(date_obj, time_obj)
+                new_record['checkout'] = full_datetime.isoformat()
+            except ValueError:
+                return jsonify({"success": False, "error": "Invalid check-out time format. Use HH:MM:SS"})
+        
+        # Add new record
+        records.append(new_record)
+        
+        # Sort all records by faculty ID, then by check-in time
+        records.sort(key=lambda x: (
+            (x.get('student_id') or '').strip().upper(),
+            x.get('checkin', '') or ''
+        ))
+        
+        # Recalculate delays for this faculty
+        date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+        faculty_records = [r for r in records if r.get('student_id', '').strip().upper() == faculty_id.upper()]
+        if faculty_records:
+            staff_type = determine_staff_type(faculty_id)
+            delay_val = compute_daily_delay_for_records(faculty_records, date_obj, staff_type)
+            # Update delay for all records of this faculty
+            for record in records:
+                if record.get('student_id', '').strip().upper() == faculty_id:
+                    record['delay'] = delay_val
+        
+        # Save updated data directly to source file
+        with source_file.open('w', encoding='utf-8') as f:
+            json.dump(records, f, ensure_ascii=False, indent=2)
+        
+        return jsonify({
+            "success": True, 
+            "message": f"Successfully added new record for {faculty_id}"
+        })
+        
+    except Exception as e:
+        return jsonify({"success": False, "error": f"Failed to add attendance: {str(e)}"})
+
+
+@app.route("/api/attendance/delete-specific", methods=["POST"])
+def api_delete_specific_attendance():
+    """Delete a specific attendance record by index."""
+    if not is_logged_in():
+        return jsonify({"success": False, "error": "Not authenticated"}), 401
+    
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "error": "No data provided"})
+        
+        faculty_id = data.get('faculty_id', '').strip().upper()
+        date_str = data.get('date', '').strip()
+        record_index = data.get('record_index', 0)
+        
+        if not faculty_id or not date_str:
+            return jsonify({"success": False, "error": "Faculty ID and date are required"})
+        
+        # Load the attendance file directly from source
+        source_dir = get_attendance_dir()
+        source_file = source_dir / f"{date_str}.json"
+        if not source_file.exists():
+            return jsonify({"success": False, "error": f"Attendance file for {date_str} not found"})
+        
+        # Read current data
+        with source_file.open('r', encoding='utf-8') as f:
+            records = json.load(f)
+        
+        if not isinstance(records, list):
+            return jsonify({"success": False, "error": "Invalid data format"})
+        
+        # Find all records for this faculty member
+        faculty_records = [i for i, r in enumerate(records) if r.get('student_id', '').strip().upper() == faculty_id.upper()]
+        
+        if not faculty_records:
+            return jsonify({"success": False, "error": f"No records found for faculty {faculty_id}"})
+        
+        if record_index >= len(faculty_records):
+            return jsonify({"success": False, "error": "Invalid record index"})
+        
+        # Get the actual record index in the full list
+        actual_index = faculty_records[record_index]
+        
+        # Remove the specific record
+        deleted_record = records.pop(actual_index)
+        
+        # If no more records exist for this faculty, create a placeholder
+        remaining_faculty_records = [r for r in records if r.get('student_id', '').strip().upper() == faculty_id.upper()]
+        
+        if not remaining_faculty_records:
+            # Create placeholder record
+            faculty_details = load_faculty_details()
+            faculty_info = faculty_details.get(faculty_id.upper(), {})
+            
+            placeholder_record = {
+                'student_id': faculty_id,
+                'name': faculty_info.get('name', ''),
+                'checkin': '',
+                'checkout': '',
+                'delay': 'N/A'
+            }
+            
+            records.append(placeholder_record)
+            placeholder_created = True
+        else:
+            placeholder_created = False
+        
+        # Sort all records by faculty ID
+        records.sort(key=lambda x: (x.get('student_id') or '').strip().upper())
+        
+        # Save updated data directly to source file
+        with source_file.open('w', encoding='utf-8') as f:
+            json.dump(records, f, ensure_ascii=False, indent=2)
+        
+        return jsonify({
+            "success": True, 
+            "message": f"Successfully deleted record for {faculty_id}",
+            "placeholder_created": placeholder_created
+        })
+        
+    except Exception as e:
+        return jsonify({"success": False, "error": f"Failed to delete attendance: {str(e)}"})
+
+
+@app.route("/api/monthly-delay-report", methods=["GET"])
+def api_monthly_delay_report():
+    """Get monthly delay report data."""
+    if not is_logged_in():
+        return jsonify({"success": False, "error": "Not authenticated"}), 401
+    
+    try:
+        month = request.args.get('month')
+        year = request.args.get('year')
+        
+        if not month or not year:
+            return jsonify({"success": False, "error": "Month and year are required"})
+        
+        # Get monthly delay data
+        monthly_delays = []
+        faculty_details = load_faculty_details()
+        
+        for faculty_id, faculty_info in faculty_details.items():
+            total_delay_seconds = 0
+            days_with_records = 0
+            
+            for day in range(1, 32):
+                try:
+                    date_str = f"{year}-{month.zfill(2)}-{day:02d}"
+                    date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+                    
+                    source_dir = get_attendance_dir()
+                    source_file = source_dir / f"{date_str}.json"
+                    
+                    if source_file.exists():
+                        with source_file.open('r', encoding='utf-8') as f:
+                            records = json.load(f)
+                        
+                        faculty_records = [r for r in records if r.get('student_id', '').strip().upper() == faculty_id.upper()]
+                        
+                        if faculty_records:
+                            days_with_records += 1
+                            staff_type = determine_staff_type(faculty_id)
+                            daily_delay = compute_daily_delay_for_records(faculty_records, date_obj, staff_type)
+                            
+                            if daily_delay != 'N/A':
+                                delay_parts = daily_delay.split(':')
+                                if len(delay_parts) == 3:
+                                    hours, minutes, seconds = map(int, delay_parts)
+                                    total_delay_seconds += hours * 3600 + minutes * 60 + seconds
+                
+                except ValueError:
+                    continue
+            
+            total_delay = 'N/A' if days_with_records == 0 else _seconds_to_hhmmss(total_delay_seconds)
+            
+            monthly_delays.append({
+                'faculty_id': faculty_id,
+                'name': faculty_info.get('name', ''),
+                'total_delay': total_delay
+            })
+        
+        monthly_delays.sort(key=lambda x: x['faculty_id'])
+        
+        return jsonify({
+            "success": True,
+            "data": monthly_delays,
+            "month": month,
+            "year": year
+        })
+        
+    except Exception as e:
+        return jsonify({"success": False, "error": f"Failed to get monthly delay report: {str(e)}"})
+
+
+@app.route("/api/monthly-delay-report/excel", methods=["GET"])
+def api_monthly_delay_report_excel():
+    """Export monthly delay report as Excel file."""
+    if not is_logged_in():
+        return jsonify({"success": False, "error": "Not authenticated"}), 401
+    
+    try:
+        month = request.args.get('month')
+        year = request.args.get('year')
+        
+        if not month or not year:
+            return jsonify({"success": False, "error": "Month and year are required"})
+        
+        # Get monthly delay data
+        monthly_delays = []
+        faculty_details = load_faculty_details()
+        
+        for faculty_id, faculty_info in faculty_details.items():
+            total_delay_seconds = 0
+            days_with_records = 0
+            
+            for day in range(1, 32):
+                try:
+                    date_str = f"{year}-{month.zfill(2)}-{day:02d}"
+                    date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+                    
+                    source_dir = get_attendance_dir()
+                    source_file = source_dir / f"{date_str}.json"
+                    
+                    if source_file.exists():
+                        with source_file.open('r', encoding='utf-8') as f:
+                            records = json.load(f)
+                        
+                        faculty_records = [r for r in records if r.get('student_id', '').strip().upper() == faculty_id.upper()]
+                        
+                        if faculty_records:
+                            days_with_records += 1
+                            staff_type = determine_staff_type(faculty_id)
+                            daily_delay = compute_daily_delay_for_records(faculty_records, date_obj, staff_type)
+                            
+                            if daily_delay != 'N/A':
+                                delay_parts = daily_delay.split(':')
+                                if len(delay_parts) == 3:
+                                    hours, minutes, seconds = map(int, delay_parts)
+                                    total_delay_seconds += hours * 3600 + minutes * 60 + seconds
+                
+                except ValueError:
+                    continue
+            
+            total_delay = 'N/A' if days_with_records == 0 else _seconds_to_hhmmss(total_delay_seconds)
+            
+            monthly_delays.append({
+                'faculty_id': faculty_id,
+                'name': faculty_info.get('name', ''),
+                'total_delay': total_delay
+            })
+        
+        monthly_delays.sort(key=lambda x: x['faculty_id'])
+        
+        # Create Excel workbook
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+        from openpyxl.utils import get_column_letter
+        
+        wb = Workbook()
+        ws = wb.active
+        ws.title = f"Monthly Delay Report {month}-{year}"
+        
+        # Convert month number to month name
+        month_names = {
+            '01': 'January', '02': 'February', '03': 'March', '04': 'April',
+            '05': 'May', '06': 'June', '07': 'July', '08': 'August',
+            '09': 'September', '10': 'October', '11': 'November', '12': 'December'
+        }
+        month_name = month_names.get(month.zfill(2), month)
+        
+        # Meta table - Report Information
+        meta_data = [
+            ['Report Type', 'Monthly Delay Report'],
+            ['Month', month_name],
+            ['Year', year],
+            ['Generated On', datetime.now().strftime('%Y-%m-%d %H:%M:%S')],
+            ['Total Faculty', len(monthly_delays)],
+            ['', ''],  # Empty row for spacing
+        ]
+        
+        # Add meta table
+        for row_idx, (key, value) in enumerate(meta_data, 1):
+            if key and value:  # Skip empty rows
+                # Key column
+                key_cell = ws.cell(row=row_idx, column=1, value=key)
+                key_cell.font = Font(bold=True, size=11)
+                key_cell.fill = PatternFill(start_color="E6F3FF", end_color="E6F3FF", fill_type="solid")
+                key_cell.border = Border(
+                    left=Side(style='thin', color='000000'),
+                    right=Side(style='thin', color='000000'),
+                    top=Side(style='thin', color='000000'),
+                    bottom=Side(style='thin', color='000000')
+                )
+                
+                # Value column
+                value_cell = ws.cell(row=row_idx, column=2, value=value)
+                value_cell.font = Font(size=11)
+                value_cell.fill = PatternFill(start_color="F0F8FF", end_color="F0F8FF", fill_type="solid")
+                value_cell.alignment = Alignment(horizontal="left", vertical="center")
+                value_cell.border = Border(
+                    left=Side(style='thin', color='000000'),
+                    right=Side(style='thin', color='000000'),
+                    top=Side(style='thin', color='000000'),
+                    bottom=Side(style='thin', color='000000')
+                )
+        
+        # Main data table starts after meta table
+        data_start_row = len([item for item in meta_data if item[0] and item[1]]) + 3
+        
+        # Main table headers
+        headers = ['Faculty ID', 'Name', 'Total Delay']
+        for col, header in enumerate(headers, 1):
+            cell = ws.cell(row=data_start_row, column=col, value=header)
+            cell.font = Font(bold=True, color="FFFFFF", size=12)
+            cell.fill = PatternFill(start_color="2F4F4F", end_color="2F4F4F", fill_type="solid")
+            cell.alignment = Alignment(horizontal="center", vertical="center")
+            cell.border = Border(
+                left=Side(style='medium', color='000000'),
+                right=Side(style='medium', color='000000'),
+                top=Side(style='medium', color='000000'),
+                bottom=Side(style='medium', color='000000')
+            )
+        
+        # Data rows
+        for row, delay_data in enumerate(monthly_delays, data_start_row + 1):
+            # Faculty ID
+            id_cell = ws.cell(row=row, column=1, value=delay_data['faculty_id'])
+            id_cell.font = Font(bold=True, size=11)
+            id_cell.alignment = Alignment(horizontal="center", vertical="center")
+            
+            # Name
+            name_cell = ws.cell(row=row, column=2, value=delay_data['name'])
+            name_cell.font = Font(size=11)
+            name_cell.alignment = Alignment(horizontal="left", vertical="center")
+            
+            # Total Delay
+            delay_cell = ws.cell(row=row, column=3, value=delay_data['total_delay'])
+            delay_cell.font = Font(size=11)
+            delay_cell.alignment = Alignment(horizontal="center", vertical="center")
+            
+            # Add borders and alternating row colors
+            row_color = "FFFFFF" if row % 2 == 0 else "F8F9FA"
+            for col in range(1, 4):
+                cell = ws.cell(row=row, column=col)
+                cell.fill = PatternFill(start_color=row_color, end_color=row_color, fill_type="solid")
+                cell.border = Border(
+                    left=Side(style='thin', color='000000'),
+                    right=Side(style='thin', color='000000'),
+                    top=Side(style='thin', color='000000'),
+                    bottom=Side(style='thin', color='000000')
+                )
+        
+        # Auto-adjust column widths
+        for column in ws.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 50)
+            ws.column_dimensions[column_letter].width = adjusted_width
+        
+        # Save to BytesIO
+        from io import BytesIO
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
+        
+        return app.response_class(
+            output.getvalue(),
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            headers={'Content-Disposition': f'attachment; filename=monthly_delay_report_{year}_{month}.xlsx'}
+        )
+        
+    except Exception as e:
+        return jsonify({"success": False, "error": f"Failed to export Excel: {str(e)}"})
+
+
+@app.route("/api/monthly-delay-report/pdf", methods=["GET"])
+def api_monthly_delay_report_pdf():
+    """Export monthly delay report as PDF file."""
+    if not is_logged_in():
+        return jsonify({"success": False, "error": "Not authenticated"}), 401
+    
+    try:
+        month = request.args.get('month')
+        year = request.args.get('year')
+        
+        if not month or not year:
+            return jsonify({"success": False, "error": "Month and year are required"})
+        
+        # Get monthly delay data
+        monthly_delays = []
+        faculty_details = load_faculty_details()
+        
+        for faculty_id, faculty_info in faculty_details.items():
+            total_delay_seconds = 0
+            days_with_records = 0
+            
+            for day in range(1, 32):
+                try:
+                    date_str = f"{year}-{month.zfill(2)}-{day:02d}"
+                    date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+                    
+                    source_dir = get_attendance_dir()
+                    source_file = source_dir / f"{date_str}.json"
+                    
+                    if source_file.exists():
+                        with source_file.open('r', encoding='utf-8') as f:
+                            records = json.load(f)
+                        
+                        faculty_records = [r for r in records if r.get('student_id', '').strip().upper() == faculty_id.upper()]
+                        
+                        if faculty_records:
+                            days_with_records += 1
+                            staff_type = determine_staff_type(faculty_id)
+                            daily_delay = compute_daily_delay_for_records(faculty_records, date_obj, staff_type)
+                            
+                            if daily_delay != 'N/A':
+                                delay_parts = daily_delay.split(':')
+                                if len(delay_parts) == 3:
+                                    hours, minutes, seconds = map(int, delay_parts)
+                                    total_delay_seconds += hours * 3600 + minutes * 60 + seconds
+                
+                except ValueError:
+                    continue
+            
+            total_delay = 'N/A' if days_with_records == 0 else _seconds_to_hhmmss(total_delay_seconds)
+            
+            monthly_delays.append({
+                'faculty_id': faculty_id,
+                'name': faculty_info.get('name', ''),
+                'total_delay': total_delay
+            })
+        
+        monthly_delays.sort(key=lambda x: x['faculty_id'])
+        
+        # Create PDF with same template as daily attendance export
+        from reportlab.lib.pagesizes import letter, A4
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib import colors
+        from reportlab.lib.units import inch
+        from io import BytesIO
+        
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=18)
+        
+        # Get styles
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=16,
+            spaceAfter=30,
+            alignment=1  # Center alignment
+        )
+        
+        # Build content
+        story = []
+        
+        # Use the new header design
+        header_table = create_pdf_header()
+        story.append(header_table)
+        story.append(Spacer(1, 20))  # Space after header
+        
+        # Convert month number to month name
+        month_names = {
+            '01': 'January', '02': 'February', '03': 'March', '04': 'April',
+            '05': 'May', '06': 'June', '07': 'July', '08': 'August',
+            '09': 'September', '10': 'October', '11': 'November', '12': 'December'
+        }
+        month_name = month_names.get(month.zfill(2), month)
+        
+        # Report title (centered with proper spacing)
+        report_title_style = ParagraphStyle(
+            'ReportTitle',
+            parent=styles['Heading2'],
+            fontSize=16,  # Smaller font to save space
+            spaceAfter=12,  # Restore proper spacing
+            alignment=1,  # Center alignment
+            fontName='Helvetica-Bold',
+            textColor=colors.black
+        )
+        report_title = Paragraph("Monthly Delay Report", report_title_style)
+        story.append(report_title)
+        
+        # Month and year (centered with proper spacing)
+        month_style = ParagraphStyle(
+            'MonthStyle',
+            parent=styles['Normal'],
+            fontSize=14,  # Smaller font to save space
+            spaceAfter=20,  # Restore proper spacing
+            alignment=1,  # Center alignment
+            textColor=colors.grey,  # Gray color for subtitle
+            fontName='Helvetica'
+        )
+        month_text = Paragraph(f"Month: {month_name} {year}", month_style)
+        story.append(month_text)
+        story.append(Spacer(1, 20))  # Restore proper spacing
+        
+        # Create table data
+        table_data = [['Faculty ID', 'Name', 'Total Delay']]
+        for delay_data in monthly_delays:
+            table_data.append([
+                delay_data['faculty_id'],
+                delay_data['name'],
+                delay_data['total_delay']
+            ])
+        
+        # Create table with larger fonts and professional styling
+        table = Table(table_data, colWidths=[90, 350, 90])  # Better column widths
+        table.setStyle(TableStyle([
+            # Header styling - black background with white text
+            ('BACKGROUND', (0, 0), (-1, 0), colors.black),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('ALIGN', (0, 0), (-1, 0), 'LEFT'),  # Left align headers
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),  # Larger header font
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 10),  # Better padding
+            ('TOPPADDING', (0, 0), (-1, 0), 10),
+            # White vertical borders for header
+            ('LINEBEFORE', (0, 0), (0, 0), 1.0, colors.white),
+            ('LINEBEFORE', (1, 0), (1, 0), 1.0, colors.white),
+            ('LINEBEFORE', (2, 0), (2, 0), 1.0, colors.white),
+            ('LINEAFTER', (0, 0), (0, 0), 1.0, colors.white),
+            ('LINEAFTER', (1, 0), (1, 0), 1.0, colors.white),
+            ('LINEAFTER', (2, 0), (2, 0), 1.0, colors.white),
+            # Data row styling - alternating white and light grey
+            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.lightgrey]),
+            ('ALIGN', (0, 1), (-1, -1), 'LEFT'),  # Left align data
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 11),  # Larger data font for better readability
+            ('BOTTOMPADDING', (0, 1), (-1, -1), 8),  # Better padding
+            ('TOPPADDING', (0, 1), (-1, -1), 8),
+            # Black borders for all cells
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),  # Clean borders
+        ]))
+        
+        story.append(table)
+        
+        # Build PDF
+        doc.build(story)
+        buffer.seek(0)
+        
+        return app.response_class(
+            buffer.getvalue(),
+            mimetype='application/pdf',
+            headers={'Content-Disposition': f'attachment; filename=monthly_delay_report_{year}_{month}.pdf'}
+        )
+        
+    except Exception as e:
+        return jsonify({"success": False, "error": f"Failed to export PDF: {str(e)}"})
+
+
+@app.route("/api/daily-attendance-report/excel", methods=["GET"])
+def api_daily_attendance_report_excel():
+    """Export daily attendance report as Excel file."""
+    if not is_logged_in():
+        return jsonify({"success": False, "error": "Not authenticated"}), 401
+    
+    try:
+        date = request.args.get('date')
+        if not date:
+            return jsonify({"success": False, "error": "Date is required"})
+        
+        # Get attendance data for the date
+        source_dir = get_attendance_dir()
+        source_file = source_dir / f"{date}.json"
+        
+        if not source_file.exists():
+            return jsonify({"success": False, "error": f"No attendance data found for {date}"})
+        
+        with source_file.open('r', encoding='utf-8') as f:
+            records = json.load(f)
+        
+        # Sort records by faculty ID
+        records.sort(key=lambda x: (x.get('student_id') or '').strip().upper())
+        
+        # Create Excel workbook with ONLY 5 columns using a different approach
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+        
+        wb = Workbook()
+        ws = wb.active
+        ws.title = f"Faculty Attendance Report {date}"
+        
+        # CRITICAL: Only work with columns A-E, ignore everything else
+        # Set column dimensions to 0 for all columns beyond E
+        for col in range(6, 50):  # Set columns F onwards to 0 width
+            ws.column_dimensions[chr(64 + col)].width = 0
+            ws.column_dimensions[chr(64 + col)].hidden = True
+        
+        # Convert date format from YYYY-MM-DD to DD-MM-YYYY
+        date_parts = date.split('-')
+        formatted_date = f"{date_parts[2]}-{date_parts[1]}-{date_parts[0]}"
+        
+        # Report title
+        title_cell = ws.cell(row=1, column=1, value=f"Faculty Attendance Report - {formatted_date}")
+        title_cell.font = Font(bold=True, size=16)
+        title_cell.alignment = Alignment(horizontal="center", vertical="center")
+        
+        # Add some spacing
+        ws.row_dimensions[2].height = 20
+        
+        # Table headers (only 5 columns: Faculty ID, Name, Check-in, Check-out, Delay)
+        headers = ['Faculty ID', 'Name', 'Check-in (Time)', 'Check-out (Time)', 'Delay (Time)']
+        for col, header in enumerate(headers, 1):
+            cell = ws.cell(row=3, column=col, value=header)
+            cell.font = Font(bold=True, color="FFFFFF", size=12)  # White text
+            cell.fill = PatternFill(start_color="000000", end_color="000000", fill_type="solid")  # Black background
+            cell.alignment = Alignment(horizontal="center", vertical="center")
+            cell.border = Border(
+                left=Side(style='medium', color='000000'),
+                right=Side(style='medium', color='000000'),
+                top=Side(style='medium', color='000000'),
+                bottom=Side(style='medium', color='000000')
+            )
+        
+        # Ensure any other columns beyond the 5 main columns have white background
+        for col in range(6, 50):  # Columns F onwards
+            cell = ws.cell(row=3, column=col, value="")
+            cell.fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")  # White background
+            cell.font = Font(color="000000", size=12)  # Black text
+            cell.border = Border(
+                left=Side(style='thin', color='000000'),
+                right=Side(style='thin', color='000000'),
+                top=Side(style='thin', color='000000'),
+                bottom=Side(style='thin', color='000000')
+            )
+        
+        # Data rows (only 5 columns)
+        for row, record in enumerate(records, 4):
+            # Faculty ID
+            id_cell = ws.cell(row=row, column=1, value=record.get('student_id', ''))
+            id_cell.font = Font(bold=True, size=11)
+            id_cell.alignment = Alignment(horizontal="center", vertical="center")
+            
+            # Name
+            name_cell = ws.cell(row=row, column=2, value=record.get('name', ''))
+            name_cell.font = Font(size=11)
+            name_cell.alignment = Alignment(horizontal="left", vertical="center")
+            
+            # Check-in time
+            checkin = record.get('checkin', '')
+            if checkin and checkin != '':
+                try:
+                    from datetime import datetime
+                    dt = datetime.fromisoformat(checkin.replace('Z', '+00:00'))
+                    checkin_formatted = dt.strftime('%H:%M:%S')
+                except:
+                    checkin_formatted = 'Not recorded'
+            else:
+                checkin_formatted = 'Not recorded'
+            
+            checkin_cell = ws.cell(row=row, column=3, value=checkin_formatted)
+            checkin_cell.font = Font(size=11)
+            checkin_cell.alignment = Alignment(horizontal="center", vertical="center")
+            
+            # Check-out time
+            checkout = record.get('checkout', '')
+            if checkout and checkout != '':
+                try:
+                    from datetime import datetime
+                    dt = datetime.fromisoformat(checkout.replace('Z', '+00:00'))
+                    checkout_formatted = dt.strftime('%H:%M:%S')
+                except:
+                    checkout_formatted = 'Not recorded'
+            else:
+                checkout_formatted = 'Not recorded'
+            
+            checkout_cell = ws.cell(row=row, column=4, value=checkout_formatted)
+            checkout_cell.font = Font(size=11)
+            checkout_cell.alignment = Alignment(horizontal="center", vertical="center")
+            
+            # Delay time
+            delay = record.get('delay', '')
+            if delay and delay != '' and delay != 'N/A':
+                delay_formatted = delay
+            elif checkin_formatted == 'Not recorded' or checkout_formatted == 'Not recorded':
+                delay_formatted = 'Absent'
+            else:
+                delay_formatted = '00:00:00'
+            
+            delay_cell = ws.cell(row=row, column=5, value=delay_formatted)
+            delay_cell.font = Font(size=11)
+            delay_cell.alignment = Alignment(horizontal="center", vertical="center")
+            
+            # Add borders only (no background colors)
+            for col in range(1, 6):  # Only 5 columns
+                cell = ws.cell(row=row, column=col)
+                cell.border = Border(
+                    left=Side(style='thin', color='000000'),
+                    right=Side(style='thin', color='000000'),
+                    top=Side(style='thin', color='000000'),
+                    bottom=Side(style='thin', color='000000')
+                )
+        
+        # Set column widths (only for 5 columns)
+        column_widths = [15, 30, 15, 15, 15]  # Faculty ID, Name, Check-in, Check-out, Delay
+        for i, width in enumerate(column_widths, 1):
+            ws.column_dimensions[chr(64 + i)].width = width
+        
+        # Explicitly clear any styling from extra columns
+        for row in range(1, len(records) + 10):
+            for col in range(6, 50):  # Clear columns F onwards
+                cell = ws.cell(row=row, column=col)
+                cell.value = None
+                cell.fill = PatternFill()  # No fill
+                cell.font = Font()  # Default font
+                cell.border = Border()  # No border
+                cell.alignment = Alignment()  # Default alignment
+        
+        # Set the used range to only include columns A-E
+        ws.max_column = 5
+        
+        # Save to BytesIO
+        from io import BytesIO
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
+        
+        return app.response_class(
+            output.getvalue(),
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            headers={'Content-Disposition': f'attachment; filename=daily_attendance_report_{date}.xlsx'}
+        )
+        
+    except Exception as e:
+        return jsonify({"success": False, "error": f"Failed to export Excel: {str(e)}"})
+
+@app.route("/api/daily-attendance-report/pdf", methods=["GET"])
+def api_daily_attendance_report_pdf():
+    """Export daily attendance report as PDF file."""
+    if not is_logged_in():
+        return jsonify({"success": False, "error": "Not authenticated"}), 401
+    
+    try:
+        date = request.args.get('date')
+        if not date:
+            return jsonify({"success": False, "error": "Date is required"})
+        
+        print(f"PDF generation requested for date: {date}")
+        
+        # Get attendance data for the date
+        source_dir = get_attendance_dir()
+        source_file = source_dir / f"{date}.json"
+        
+        if not source_file.exists():
+            print(f"File not found: {source_file}")
+            return jsonify({"success": False, "error": f"No attendance data found for {date}"})
+        
+        print(f"Reading data from: {source_file}")
+        with source_file.open('r', encoding='utf-8') as f:
+            records = json.load(f)
+        
+        print(f"Found {len(records)} records")
+        
+        # Calculate delays for all records (same logic as API)
+        if records:
+            try:
+                date_obj = datetime.strptime(date, "%Y-%m-%d")
+                # Group records by faculty ID
+                by_id = {}
+                for row in records:
+                    sid = (row.get('student_id') or '').strip().upper()
+                    if sid:
+                        by_id.setdefault(sid, []).append(row)
+                
+                # Calculate delay for each faculty member
+                for sid, faculty_rows in by_id.items():
+                    staff_type = determine_staff_type(sid)
+                    delay_val = compute_daily_delay_for_records(faculty_rows, date_obj, staff_type)
+                    for r in faculty_rows:
+                        r['delay'] = delay_val
+            except Exception as e:
+                print(f"Error calculating delays: {e}")
+        
+        # Consolidate records by faculty ID (one row per faculty)
+        consolidated_records = {}
+        for record in records:
+            faculty_id = (record.get('student_id') or '').strip().upper()
+            if faculty_id not in consolidated_records:
+                consolidated_records[faculty_id] = {
+                    'student_id': faculty_id,
+                    'name': record.get('name', ''),
+                    'checkins': [],
+                    'checkouts': [],
+                    'delay': record.get('delay', '')
+                }
+            
+            # Collect all check-ins and check-outs
+            checkin = record.get('checkin', '')
+            checkout = record.get('checkout', '')
+            
+            if checkin and checkin != '':
+                try:
+                    dt = datetime.fromisoformat(checkin.replace('Z', '+00:00'))
+                    consolidated_records[faculty_id]['checkins'].append(dt)
+                except:
+                    pass
+            
+            if checkout and checkout != '':
+                try:
+                    dt = datetime.fromisoformat(checkout.replace('Z', '+00:00'))
+                    consolidated_records[faculty_id]['checkouts'].append(dt)
+                except:
+                    pass
+        
+        # Sort consolidated records by faculty ID
+        sorted_faculty_ids = sorted(consolidated_records.keys())
+        
+        # Create PDF with same template as monthly report
+        print("Starting PDF generation...")
+        from reportlab.lib.pagesizes import letter, A4
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib import colors
+        from reportlab.lib.units import inch
+        from io import BytesIO
+        
+        print("Creating PDF buffer...")
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=18)
+        
+        # Get styles
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=16,
+            spaceAfter=30,
+            alignment=1  # Center alignment
+        )
+        
+        # Build content
+        story = []
+        
+        # Use the new header design
+        header_table = create_pdf_header()
+        story.append(header_table)
+        story.append(Spacer(1, 20))  # Space after header
+        
+        # Convert date format from YYYY-MM-DD to DD-MM-YYYY
+        date_parts = date.split('-')
+        formatted_date = f"{date_parts[2]}-{date_parts[1]}-{date_parts[0]}"
+        
+        # Report title - Two line format
+        report_title_style = ParagraphStyle(
+            'ReportTitle',
+            parent=styles['Heading2'],
+            fontSize=14,
+            spaceAfter=12,
+            alignment=1  # Center alignment
+        )
+        report_title = Paragraph("Faculty Attendance", report_title_style)
+        story.append(report_title)
+        
+        # Date line
+        date_style = ParagraphStyle(
+            'DateStyle',
+            parent=styles['Heading3'],
+            fontSize=12,
+            spaceAfter=20,
+            alignment=1  # Center alignment
+        )
+        date_title = Paragraph(f"Date: {formatted_date}", date_style)
+        story.append(date_title)
+        story.append(Spacer(1, 20))
+        
+        # Create table data with consolidated records
+        table_data = [['Faculty ID', 'Name', 'Check In', 'Check Out', 'Delay']]
+        for faculty_id in sorted_faculty_ids:
+            record = consolidated_records[faculty_id]
+            
+            # Format check in time (earliest check-in)
+            if record['checkins']:
+                earliest_checkin = min(record['checkins'])
+                checkin_formatted = earliest_checkin.strftime('%H:%M:%S')
+            else:
+                checkin_formatted = 'Absent'
+            
+            # Format check out time (latest check-out)
+            if record['checkouts']:
+                latest_checkout = max(record['checkouts'])
+                checkout_formatted = latest_checkout.strftime('%H:%M:%S')
+            else:
+                checkout_formatted = 'Absent'
+            
+            # Format delay value with refined logic for check-in without check-out
+            delay = record.get('delay', '')
+            if checkin_formatted == 'Absent':
+                # If no check-in at all, show as Absent
+                delay_formatted = 'Absent'
+            elif checkout_formatted == 'Absent':
+                # If has check-in but no check-out, show as Absent
+                delay_formatted = 'Absent'
+            elif delay and delay != '' and delay != 'N/A':
+                # If both check-in and check-out present, show calculated delay
+                delay_formatted = delay
+            else:
+                # Fallback case - both present but no delay calculated
+                delay_formatted = '00:00:00'
+            
+            table_data.append([
+                record.get('student_id', ''),
+                record.get('name', ''),
+                checkin_formatted,
+                checkout_formatted,
+                delay_formatted
+            ])
+        
+        # Create table with professional styling
+        table = Table(table_data, colWidths=[80, 150, 80, 80, 80])
+        table.setStyle(TableStyle([
+            # Header styling - black background with white text (matching monthly report)
+            ('BACKGROUND', (0, 0), (-1, 0), colors.black),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('ALIGN', (0, 0), (-1, 0), 'LEFT'),  # Left align headers (matching monthly report)
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 10),  # Better padding
+            ('TOPPADDING', (0, 0), (-1, 0), 10),
+            # White vertical borders for header (matching monthly report)
+            ('LINEBEFORE', (0, 0), (0, 0), 1.0, colors.white),
+            ('LINEBEFORE', (1, 0), (1, 0), 1.0, colors.white),
+            ('LINEBEFORE', (2, 0), (2, 0), 1.0, colors.white),
+            ('LINEBEFORE', (3, 0), (3, 0), 1.0, colors.white),
+            ('LINEBEFORE', (4, 0), (4, 0), 1.0, colors.white),
+            ('LINEAFTER', (0, 0), (0, 0), 1.0, colors.white),
+            ('LINEAFTER', (1, 0), (1, 0), 1.0, colors.white),
+            ('LINEAFTER', (2, 0), (2, 0), 1.0, colors.white),
+            ('LINEAFTER', (3, 0), (3, 0), 1.0, colors.white),
+            ('LINEAFTER', (4, 0), (4, 0), 1.0, colors.white),
+            # Data row styling - alternating white and light grey (matching monthly report)
+            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.lightgrey]),
+            ('ALIGN', (0, 1), (-1, -1), 'LEFT'),  # Left align data (matching monthly report)
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 11),  # Larger data font for better readability
+            ('BOTTOMPADDING', (0, 1), (-1, -1), 8),  # Better padding
+            ('TOPPADDING', (0, 1), (-1, -1), 8),
+            # Black borders for all cells (matching monthly report)
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),  # Clean borders
+        ]))
+        
+        story.append(table)
+        
+        # Build PDF
+        print("Building PDF...")
+        try:
+            doc.build(story)
+            buffer.seek(0)
+            pdf_content = buffer.getvalue()
+            print(f"PDF generated successfully, size: {len(pdf_content)} bytes")
+        except Exception as e:
+            print(f"Error building PDF: {e}")
+            raise e
+        
+        return app.response_class(
+            pdf_content,
+            mimetype='application/pdf',
+            headers={'Content-Disposition': f'attachment; filename=daily_attendance_report_{date}.pdf'}
+        )
+        
+    except Exception as e:
+        return jsonify({"success": False, "error": f"Failed to export PDF: {str(e)}"})
+
+
+@app.route("/faculty-detailed-report")
+def faculty_detailed_report_page():
+    """Serve the faculty detailed report webpage."""
     if not is_logged_in():
         return redirect(url_for("login"))
-    
-    result = sync_attendance_files()
-    # Ensure annotation for all existing files after each sync
-    ann = annotate_all_existing_files()
-    result["annotation"] = {"annotated": len(ann.get("annotated", [])), "errors": ann.get("errors", [])}
-    return jsonify(result)
+    return render_template("faculty_detailed_report.html")
 
 
-@app.route("/api/sync/status")
-def api_sync_status():
-    """Get sync status and file information."""
+@app.route("/api/faculty-detailed-report", methods=["GET"])
+def api_faculty_detailed_report():
+    """Get faculty detailed report data."""
     if not is_logged_in():
-        return redirect(url_for("login"))
+        return jsonify({"success": False, "error": "Not authenticated"}), 401
     
-    source_dir = Path(ATTENDANCE_DIR)
-    json_dir = JSON_ATTENDANCE_DIR
-    tracking_data = load_file_tracking()
-    
-    source_files = []
-    json_files = []
-    
-    if source_dir.exists():
-        source_files = [f.name for f in source_dir.glob("*.json")]
-    
-    if json_dir.exists():
-        json_files = [f.name for f in json_dir.glob("*.json")]
-    
-    return jsonify({
-        "source_directory": str(source_dir),
-        "json_directory": str(json_dir),
-        "source_files_count": len(source_files),
-        "json_files_count": len(json_files),
-        "tracked_files": len(tracking_data),
-        "monitoring_active": monitoring_active,
-        "source_files": source_files,
-        "json_files": json_files
-    })
+    try:
+        month = request.args.get('month')
+        year = request.args.get('year')
+        faculty = request.args.get('faculty')
+        
+        if not month or not year or not faculty:
+            return jsonify({"success": False, "error": "Month, year, and faculty are required"})
+        
+        # Get faculty details
+        faculty_details = load_faculty_details()
+        
+        # Determine which faculty to process
+        if faculty == 'all':
+            target_faculty = list(faculty_details.keys())
+        else:
+            target_faculty = [faculty]
+        
+        # Get all days in the month
+        from calendar import monthrange
+        days_in_month = monthrange(int(year), int(month))[1]
+        
+        # Collect data for each faculty member
+        faculty_reports = []
+        
+        for faculty_id in target_faculty:
+            faculty_info = faculty_details.get(faculty_id, {})
+            faculty_name = faculty_info.get('name', '')
+            
+            # Collect daily data for this faculty
+            daily_data = []
+            total_delay_seconds = 0
+            
+            for day in range(1, days_in_month + 1):
+                try:
+                    date_str = f"{year}-{month.zfill(2)}-{day:02d}"
+                    date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+                    
+                    source_dir = get_attendance_dir()
+                    source_file = source_dir / f"{date_str}.json"
+                    
+                    day_data = {
+                        'date': date_str,
+                        'checkin': 'Not recorded',
+                        'checkout': 'Not recorded',
+                        'delay': '00:00:00'
+                    }
+                    
+                    if source_file.exists():
+                        with source_file.open('r', encoding='utf-8') as f:
+                            records = json.load(f)
+                        
+                        faculty_records = [r for r in records if r.get('student_id', '').strip().upper() == faculty_id.upper()]
+                        
+                        if faculty_records:
+                            # Find earliest check-in and latest check-out
+                            checkins = []
+                            checkouts = []
+                            
+                            for record in faculty_records:
+                                ci = parse_ts(record.get('checkin'))
+                                co = parse_ts(record.get('checkout'))
+                                if ci:
+                                    checkins.append(ci)
+                                if co:
+                                    checkouts.append(co)
+                            
+                            if checkins:
+                                earliest_checkin = min(checkins)
+                                day_data['checkin'] = earliest_checkin.strftime('%H:%M:%S')
+                            
+                            if checkouts:
+                                latest_checkout = max(checkouts)
+                                day_data['checkout'] = latest_checkout.strftime('%H:%M:%S')
+                            
+                            # Calculate delay
+                            staff_type = determine_staff_type(faculty_id)
+                            delay_val = compute_daily_delay_for_records(faculty_records, date_obj, staff_type)
+                            
+                            # Check if both check-in and check-out are not recorded
+                            if not checkins and not checkouts:
+                                day_data['delay'] = 'Absent'
+                            else:
+                                day_data['delay'] = delay_val
+                            
+                            # Add to total delay
+                            if delay_val and delay_val != 'N/A':
+                                try:
+                                    delay_parts = delay_val.split(':')
+                                    if len(delay_parts) == 3:
+                                        hours, minutes, seconds = map(int, delay_parts)
+                                        total_delay_seconds += hours * 3600 + minutes * 60 + seconds
+                                except:
+                                    pass
+                    
+                    daily_data.append(day_data)
+                    
+                except ValueError:
+                    # Invalid date, skip
+                    daily_data.append({
+                        'date': f"{year}-{month.zfill(2)}-{day:02d}",
+                        'checkin': 'Invalid Date',
+                        'checkout': 'Invalid Date',
+                        'delay': '00:00:00'
+                    })
+            
+            faculty_reports.append({
+                'faculty_id': faculty_id,
+                'faculty_name': faculty_name,
+                'daily_data': daily_data,
+                'total_delay': _seconds_to_hhmmss(total_delay_seconds)
+            })
+        
+        return jsonify({
+            "success": True,
+            "data": faculty_reports,
+            "month": month,
+            "year": year,
+            "faculty": faculty
+        })
+        
+    except Exception as e:
+        return jsonify({"success": False, "error": f"Failed to get faculty detailed report: {str(e)}"})
 
 
-@app.route("/api/sync/start")
-def api_start_monitoring():
-    """Start background monitoring."""
+@app.route("/api/faculty-detailed-report/excel", methods=["GET"])
+def api_faculty_detailed_report_excel():
+    """Export faculty detailed report as Excel file."""
     if not is_logged_in():
-        return redirect(url_for("login"))
+        return jsonify({"success": False, "error": "Not authenticated"}), 401
     
-    start_monitoring()
-    return jsonify({"success": True, "message": "Monitoring started"})
+    try:
+        month = request.args.get('month')
+        year = request.args.get('year')
+        faculty = request.args.get('faculty')
+        
+        if not month or not year or not faculty:
+            return jsonify({"success": False, "error": "Month, year, and faculty are required"})
+        
+        # Get faculty details
+        faculty_details = load_faculty_details()
+        
+        # Determine which faculty to process
+        if faculty == 'all':
+            target_faculty = list(faculty_details.keys())
+        else:
+            target_faculty = [faculty]
+        
+        # Get all days in the month
+        from calendar import monthrange
+        days_in_month = monthrange(int(year), int(month))[1]
+        
+        # Create Excel workbook
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+        from openpyxl.utils import get_column_letter
+        
+        wb = Workbook()
+        ws = wb.active
+        ws.title = f"Faculty Detailed Report {month}-{year}"
+        
+        # Convert month number to month name
+        month_names = {
+            '01': 'January', '02': 'February', '03': 'March', '04': 'April',
+            '05': 'May', '06': 'June', '07': 'July', '08': 'August',
+            '09': 'September', '10': 'October', '11': 'November', '12': 'December'
+        }
+        month_name = month_names.get(month.zfill(2), month)
+        
+        # Process each faculty member
+        current_row = 1
+        
+        for faculty_id in target_faculty:
+            faculty_info = faculty_details.get(faculty_id, {})
+            faculty_name = faculty_info.get('name', '')
+            
+            # Faculty header - Blue text format like second image
+            faculty_header = ws.cell(row=current_row, column=1, value=f"{faculty_id} - {faculty_name}")
+            faculty_header.font = Font(bold=True, size=14, color="0000FF")  # Blue text
+            faculty_header.alignment = Alignment(horizontal="left", vertical="center")
+            current_row += 1
+            
+            # Create date-wise table for this faculty
+            # Headers: Date, Check In Time, Check Out Time, Delay
+            headers = ['Date', 'Check In Time', 'Check Out Time', 'Delay']
+            for col, header in enumerate(headers, 1):
+                cell = ws.cell(row=current_row, column=col, value=header)
+                cell.font = Font(bold=True, color="FFFFFF", size=12)
+                cell.fill = PatternFill(start_color="000000", end_color="000000", fill_type="solid")
+                cell.alignment = Alignment(horizontal="center", vertical="center")
+                
+                # Add white borders for better column identification
+                cell.border = Border(
+                    left=Side(style='medium', color='FFFFFF'),  # White left border
+                    right=Side(style='medium', color='FFFFFF'),  # White right border
+                    top=Side(style='medium', color='000000'),
+                    bottom=Side(style='medium', color='000000')
+                )
+            current_row += 1
+            
+            # Collect daily data for this faculty
+            total_delay_seconds = 0
+            
+            for day in range(1, days_in_month + 1):
+                try:
+                    date_str = f"{year}-{month.zfill(2)}-{day:02d}"
+                    date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+                    
+                    source_dir = get_attendance_dir()
+                    source_file = source_dir / f"{date_str}.json"
+                    
+                    checkin = 'Not recorded'
+                    checkout = 'Not recorded'
+                    delay = '00:00:00'
+                    
+                    if source_file.exists():
+                        with source_file.open('r', encoding='utf-8') as f:
+                            records = json.load(f)
+                        
+                        faculty_records = [r for r in records if r.get('student_id', '').strip().upper() == faculty_id.upper()]
+                        
+                        if faculty_records:
+                            # Find earliest check-in and latest check-out
+                            checkins = []
+                            checkouts = []
+                            
+                            for record in faculty_records:
+                                ci = parse_ts(record.get('checkin'))
+                                co = parse_ts(record.get('checkout'))
+                                if ci:
+                                    checkins.append(ci)
+                                if co:
+                                    checkouts.append(co)
+                            
+                            if checkins:
+                                earliest_checkin = min(checkins)
+                                checkin = earliest_checkin.strftime('%H:%M:%S')
+                            
+                            if checkouts:
+                                latest_checkout = max(checkouts)
+                                checkout = latest_checkout.strftime('%H:%M:%S')
+                            
+                            # Calculate delay
+                            staff_type = determine_staff_type(faculty_id)
+                            delay_val = compute_daily_delay_for_records(faculty_records, date_obj, staff_type)
+                            
+                            # Check if both check-in and check-out are not recorded
+                            if not checkins and not checkouts:
+                                delay = 'Absent'
+                            else:
+                                delay = delay_val
+                            
+                            # Add to total delay
+                            if delay_val and delay_val != 'N/A' and delay != 'Absent':
+                                try:
+                                    delay_parts = delay_val.split(':')
+                                    if len(delay_parts) == 3:
+                                        hours, minutes, seconds = map(int, delay_parts)
+                                        total_delay_seconds += hours * 3600 + minutes * 60 + seconds
+                                except:
+                                    pass
+                    
+                    # Add row data
+                    row_data = [
+                        f"{day:02d}/{month.zfill(2)}/{year}",
+                        checkin,
+                        checkout,
+                        delay
+                    ]
+                    
+                    for col, value in enumerate(row_data, 1):
+                        cell = ws.cell(row=current_row, column=col, value=value)
+                        cell.alignment = Alignment(horizontal="center", vertical="center")
+                        cell.border = Border(
+                            left=Side(style='thin', color='000000'),
+                            right=Side(style='thin', color='000000'),
+                            top=Side(style='thin', color='000000'),
+                            bottom=Side(style='thin', color='000000')
+                        )
+                        
+                        # Apply red text for "Absent" delay
+                        if col == 4 and value == 'Absent':  # Delay column
+                            cell.font = Font(color="FF0000", bold=True)  # Red text
+                    
+                    current_row += 1
+                    
+                except ValueError:
+                    # Invalid date, skip
+                    pass
+            
+            # Add total delay row
+            total_delay_cell = ws.cell(row=current_row, column=1, value="Total Delay")
+            total_delay_cell.font = Font(bold=True, size=12)
+            total_delay_cell.fill = PatternFill(start_color="F0F8FF", end_color="F0F8FF", fill_type="solid")
+            total_delay_cell.alignment = Alignment(horizontal="center", vertical="center")
+            
+            total_delay_value = ws.cell(row=current_row, column=4, value=_seconds_to_hhmmss(total_delay_seconds))
+            total_delay_value.font = Font(bold=True, size=12)
+            total_delay_value.fill = PatternFill(start_color="F0F8FF", end_color="F0F8FF", fill_type="solid")
+            total_delay_value.alignment = Alignment(horizontal="center", vertical="center")
+            
+            current_row += 2  # Add spacing between faculty members
+        
+        # Set column widths
+        column_widths = [15, 15, 15, 15]  # Date, Check In, Check Out, Delay
+        for i, width in enumerate(column_widths, 1):
+            ws.column_dimensions[chr(64 + i)].width = width
+        
+        # Save to BytesIO
+        from io import BytesIO
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
+        
+        return app.response_class(
+            output.getvalue(),
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            headers={'Content-Disposition': f'attachment; filename=faculty_detailed_report_{faculty}_{year}_{month}.xlsx'}
+        )
+        
+    except Exception as e:
+        return jsonify({"success": False, "error": f"Failed to export Excel: {str(e)}"})
 
 
-@app.route("/api/sync/stop")
-def api_stop_monitoring():
-    """Stop background monitoring."""
+@app.route("/api/faculty-detailed-report/pdf", methods=["GET"])
+def api_faculty_detailed_report_pdf():
+    """Export faculty detailed report as PDF file."""
     if not is_logged_in():
-        return redirect(url_for("login"))
+        return jsonify({"success": False, "error": "Not authenticated"}), 401
     
-    stop_monitoring()
-    return jsonify({"success": True, "message": "Monitoring stopped"})
+    try:
+        month = request.args.get('month')
+        year = request.args.get('year')
+        faculty = request.args.get('faculty')
+        
+        if not month or not year or not faculty:
+            return jsonify({"success": False, "error": "Month, year, and faculty are required"})
+        
+        # Get faculty details
+        faculty_details = load_faculty_details()
+        
+        # Determine which faculty to process
+        if faculty == 'all':
+            target_faculty = list(faculty_details.keys())
+        else:
+            target_faculty = [faculty]
+        
+        # Get all days in the month
+        from calendar import monthrange
+        days_in_month = monthrange(int(year), int(month))[1]
+        
+        # Create PDF
+        from reportlab.lib.pagesizes import A4
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib import colors
+        from reportlab.lib.units import inch
+        from io import BytesIO
+        
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=18)
+        
+        # Get styles
+        styles = getSampleStyleSheet()
+        
+        # Build content
+        story = []
+        
+        # Use the header design
+        header_table = create_pdf_header()
+        story.append(header_table)
+        story.append(Spacer(1, 20))
+        
+        # Convert month number to month name
+        month_names = {
+            '01': 'January', '02': 'February', '03': 'March', '04': 'April',
+            '05': 'May', '06': 'June', '07': 'July', '08': 'August',
+            '09': 'September', '10': 'October', '11': 'November', '12': 'December'
+        }
+        month_name = month_names.get(month.zfill(2), month)
+        
+        # Report title
+        report_title_style = ParagraphStyle(
+            'ReportTitle',
+            parent=styles['Heading2'],
+            fontSize=16,
+            spaceAfter=12,
+            alignment=1  # Center alignment
+        )
+        report_title = Paragraph("Faculty Detailed Report", report_title_style)
+        story.append(report_title)
+        
+        # Month and year
+        month_style = ParagraphStyle(
+            'MonthStyle',
+            parent=styles['Normal'],
+            fontSize=14,
+            spaceAfter=20,
+            alignment=1  # Center alignment
+        )
+        month_text = Paragraph(f"Month: {month_name} {year}", month_style)
+        story.append(month_text)
+        story.append(Spacer(1, 20))
+        
+        # Process each faculty member
+        for faculty_id in target_faculty:
+            faculty_info = faculty_details.get(faculty_id, {})
+            faculty_name = faculty_info.get('name', '')
+            
+            # Faculty header - Blue text format like second image
+            faculty_header_style = ParagraphStyle(
+                'FacultyHeader',
+                parent=styles['Heading3'],
+                fontSize=14,
+                spaceAfter=10,
+                textColor=colors.blue,  # Blue color like Excel
+                fontName='Helvetica-Bold'
+            )
+            faculty_header = Paragraph(f"{faculty_id} - {faculty_name}", faculty_header_style)
+            story.append(faculty_header)
+            
+            # Create table data for this faculty
+            table_data = [['Date', 'Check In Time', 'Check Out Time', 'Delay']]
+            total_delay_seconds = 0
+            
+            for day in range(1, days_in_month + 1):
+                try:
+                    date_str = f"{year}-{month.zfill(2)}-{day:02d}"
+                    date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+                    
+                    source_dir = get_attendance_dir()
+                    source_file = source_dir / f"{date_str}.json"
+                    
+                    checkin = 'Not recorded'
+                    checkout = 'Not recorded'
+                    delay = '00:00:00'
+                    
+                    if source_file.exists():
+                        with source_file.open('r', encoding='utf-8') as f:
+                            records = json.load(f)
+                        
+                        faculty_records = [r for r in records if r.get('student_id', '').strip().upper() == faculty_id.upper()]
+                        
+                        if faculty_records:
+                            # Find earliest check-in and latest check-out
+                            checkins = []
+                            checkouts = []
+                            
+                            for record in faculty_records:
+                                ci = parse_ts(record.get('checkin'))
+                                co = parse_ts(record.get('checkout'))
+                                if ci:
+                                    checkins.append(ci)
+                                if co:
+                                    checkouts.append(co)
+                            
+                            if checkins:
+                                earliest_checkin = min(checkins)
+                                checkin = earliest_checkin.strftime('%H:%M:%S')
+                            
+                            if checkouts:
+                                latest_checkout = max(checkouts)
+                                checkout = latest_checkout.strftime('%H:%M:%S')
+                            
+                            # Calculate delay
+                            staff_type = determine_staff_type(faculty_id)
+                            delay_val = compute_daily_delay_for_records(faculty_records, date_obj, staff_type)
+                            
+                            # Check if both check-in and check-out are not recorded
+                            if not checkins and not checkouts:
+                                delay = 'Absent'
+                            else:
+                                delay = delay_val
+                            
+                            # Add to total delay
+                            if delay_val and delay_val != 'N/A' and delay != 'Absent':
+                                try:
+                                    delay_parts = delay_val.split(':')
+                                    if len(delay_parts) == 3:
+                                        hours, minutes, seconds = map(int, delay_parts)
+                                        total_delay_seconds += hours * 3600 + minutes * 60 + seconds
+                                except:
+                                    pass
+                    
+                    # Add row data with special formatting for "Absent"
+                    if delay == 'Absent':
+                        # Use colored text for "Absent"
+                        from reportlab.platypus import Paragraph
+                        from reportlab.lib.styles import ParagraphStyle
+                        absent_style = ParagraphStyle(
+                            'AbsentStyle',
+                            parent=styles['Normal'],
+                            fontSize=10,
+                            textColor=colors.red,
+                            fontName='Helvetica-Bold',
+                            alignment=1  # Center alignment
+                        )
+                        delay_para = Paragraph('<font color="red">Absent</font>', absent_style)
+                        table_data.append([
+                            f"{day:02d}/{month.zfill(2)}/{year}",
+                            checkin,
+                            checkout,
+                            delay_para
+                        ])
+                    else:
+                        table_data.append([
+                            f"{day:02d}/{month.zfill(2)}/{year}",
+                            checkin,
+                            checkout,
+                            delay
+                        ])
+                    
+                except ValueError:
+                    # Invalid date, skip
+                    pass
+            
+            # Add total delay row
+            table_data.append(['Total Delay', '', '', _seconds_to_hhmmss(total_delay_seconds)])
+            
+            # Create table
+            table = Table(table_data, colWidths=[80, 80, 80, 80])
+            table.setStyle(TableStyle([
+                # Header styling with white borders
+                ('BACKGROUND', (0, 0), (-1, 0), colors.black),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 12),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+                ('TOPPADDING', (0, 0), (-1, 0), 10),
+                # White borders for header columns
+                ('LINEBEFORE', (0, 0), (0, 0), 2, colors.white),
+                ('LINEAFTER', (0, 0), (0, 0), 2, colors.white),
+                ('LINEBEFORE', (1, 0), (1, 0), 2, colors.white),
+                ('LINEAFTER', (1, 0), (1, 0), 2, colors.white),
+                ('LINEBEFORE', (2, 0), (2, 0), 2, colors.white),
+                ('LINEAFTER', (2, 0), (2, 0), 2, colors.white),
+                ('LINEBEFORE', (3, 0), (3, 0), 2, colors.white),
+                ('LINEAFTER', (3, 0), (3, 0), 2, colors.white),
+                # Data row styling
+                ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.lightgrey]),
+                ('ALIGN', (0, 1), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 1), (-1, -1), 10),
+                ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
+                ('TOPPADDING', (0, 1), (-1, -1), 8),
+                # Borders
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+                # Total row styling - center aligned
+                ('BACKGROUND', (0, -1), (-1, -1), colors.lightblue),
+                ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, -1), (-1, -1), 11),
+                ('ALIGN', (0, -1), (-1, -1), 'CENTER'),  # Center align total row
+            ]))
+            
+            story.append(table)
+            story.append(Spacer(1, 20))
+            
+            # Add page break if not the last faculty
+            if faculty_id != target_faculty[-1]:
+                story.append(PageBreak())
+        
+        # Build PDF
+        doc.build(story)
+        buffer.seek(0)
+        
+        return app.response_class(
+            buffer.getvalue(),
+            mimetype='application/pdf',
+            headers={'Content-Disposition': f'attachment; filename=faculty_detailed_report_{faculty}_{year}_{month}.pdf'}
+        )
+        
+    except Exception as e:
+        return jsonify({"success": False, "error": f"Failed to export PDF: {str(e)}"})
 
 
 if __name__ == "__main__":
-    # Perform initial sync on server start
-    initial_sync()
-    
-    # Start background monitoring
-    start_monitoring()
+    print("Starting Faculty Attendance Admin System...")
+    print(f"Reading attendance data directly from: {ATTENDANCE_DIR}")
     
     try:
-        app.run(debug=True)
-    finally:
-        # Stop monitoring when server shuts down
-        stop_monitoring()
+        app.run(host='0.0.0.0', debug=True, port=7002)
+    except Exception as e:
+        print(f"Error starting server: {e}")
 
 

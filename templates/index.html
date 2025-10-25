@@ -9,7 +9,7 @@
     <!-- <script src="https://cdn.tailwindcss.com"></script> -->
 
     <!-- use Flask static path -->
-    <script src="{{ url_for('static', filename='js/tailwindcss.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/tailwindcss.js') }}?v={{ range(1000, 9999) | random }}"></script>
 
     <script>
         // Tailwind config for gradient/brand colors
@@ -25,10 +25,140 @@
             }
         }
     </script>
+    <style>
+        /* Custom styles for better UI */
+        .table-fixed {
+            table-layout: fixed;
+        }
+        
+        .table-fixed th:nth-child(1) { width: 12%; } /* Faculty ID */
+        .table-fixed th:nth-child(2) { width: 25%; } /* Name */
+        .table-fixed th:nth-child(3) { width: 18%; } /* Check-in */
+        .table-fixed th:nth-child(4) { width: 18%; } /* Check-out */
+        .table-fixed th:nth-child(5) { width: 15%; } /* Delay */
+        .table-fixed th:nth-child(6) { width: 12%; } /* Actions */
+        
+        .edit-btn, .delete-btn {
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .edit-btn:hover, .delete-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        .time-display {
+            min-height: 1.25rem;
+        }
+        
+        /* Ensure hover area is properly defined */
+        .group:hover .edit-btn,
+        .group:hover .delete-btn {
+            opacity: 1 !important;
+        }
+        
+        /* Make sure buttons are clickable even when invisible */
+        .edit-btn, .delete-btn {
+            pointer-events: auto;
+            cursor: pointer;
+        }
+        
+        /* Ensure cursor changes on hover */
+        .edit-btn:hover, .delete-btn:hover {
+            cursor: pointer;
+        }
+        
+        /* Make the entire cell area hoverable for better UX */
+        .group td {
+            position: relative;
+        }
+        
+        /* Ensure the button area is always hoverable */
+        .edit-btn, .delete-btn {
+            position: relative;
+            z-index: 10;
+        }
+    </style>
+    
+    <!-- Custom Error Popup Styles -->
+    <style>
+        .error-popup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+        
+        .error-popup-content {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+        
+        .error-icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 16px;
+            background: #ef4444;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .error-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+        
+        .error-message {
+            color: #6b7280;
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+        
+        .error-button {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .error-button:hover {
+            background: #dc2626;
+        }
+    </style>
+    
     <!-- Export libraries -->
     <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <script>
+        // Debug jsPDF loading
+        window.addEventListener('load', function() {
+            console.log('Page loaded, checking jsPDF...');
+            console.log('window.jspdf:', typeof window.jspdf);
+            if (window.jspdf) {
+                console.log('jsPDF available:', typeof window.jspdf.jsPDF);
+                console.log('jsPDF constructor:', window.jspdf.jsPDF);
+            }
+        });
+    </script>
 </head>
 
 <body class="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100">
@@ -97,7 +227,7 @@
                                 <path d="M21 21l-3.6-3.6" />
                             </svg>
                         </span>
-                        <input id="searchInput" type="text" placeholder="Search by Faculty ID, Name, or time..."
+                        <input id="searchInput" type="text" placeholder="Search by Faculty ID, Name, or time... (Press Enter to search)"
                             class="w-full pl-9 pr-3 py-2 rounded-md border border-slate-300 text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-brand-600" />
                     </div>
                 </div>
@@ -107,6 +237,13 @@
                     <div class="text-sm text-slate-600">Showing data for <span id="selectedDateLabel"
                             class="font-medium text-slate-900"></span></div>
                     <div class="flex items-center gap-2 sm:justify-end">
+                        <button id="addRecordBtn"
+                            class="inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-md bg-blue-600 text-white shadow hover:opacity-95">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
+                            </svg>
+                            Add Record
+                        </button>
                         <button id="exportExcelBtn"
                             class="inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-md bg-emerald-600 text-white shadow hover:opacity-95">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
@@ -125,26 +262,46 @@
                             </svg>
                             Export PDF
                         </button>
+                        <button id="monthlyReportBtn"
+                            class="inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-md bg-purple-600 text-white shadow hover:opacity-95">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
+                                class="w-5 h-5">
+                                <path d="M8 2v3a1 1 0 0 0 2 0V2h4v3a1 1 0 0 0 2 0V2h3a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h3zM4 8h16v12H4V8z"/>
+                                <path d="M8 12h8v2H8v-2zm0 4h8v2H8v-2z"/>
+                            </svg>
+                            Monthly Report
+                        </button>
+                        <button id="facultyDetailedReportBtn"
+                            class="inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-md bg-indigo-600 text-white shadow hover:opacity-95">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
+                                class="w-5 h-5">
+                                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                            </svg>
+                            Faculty Detailed Report
+                        </button>
                     </div>
                 </div>
                 <div class="overflow-x-auto rounded-lg border border-slate-200">
-                    <table id="attendanceTable" class="min-w-full divide-y divide-slate-200">
+                    <table id="attendanceTable" class="min-w-full divide-y divide-slate-200 table-fixed">
                         <thead class="bg-slate-50">
                             <tr>
                                 <th class="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">
                                     Faculty ID</th>
                                 <th class="px-4 py-3 text-left text-sm font-semibold text-slate-700">Name</th>
-                                <th class="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">
+                                <th class="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap min-w-32">
                                     Check‑in (Time)</th>
-                                <th class="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">
+                                <th class="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap min-w-32">
                                     Check‑out (Time)</th>
                                 <th class="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">
                                     Delay (Time)</th>
+                                <th class="px-4 py-3 text-center text-sm font-semibold text-slate-700 whitespace-nowrap w-16">
+                                    Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 bg-white">
                             <tr>
-                                <td colspan="5" class="px-4 py-6 text-center text-slate-500">Loading...</td>
+                                <td colspan="6" class="px-4 py-6 text-center text-slate-500">Loading...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -153,7 +310,8 @@
                 <div class="inline-flex items-center gap-2 mr-4"><span class="inline-block h-3 w-3 rounded-sm bg-emerald-100 border border-emerald-300"></span><span>Delay ≤ 01:00:00 (OK)</span></div>
                 <div class="inline-flex items-center gap-2 mr-4"><span class="inline-block h-3 w-3 rounded-sm bg-amber-100 border border-amber-300"></span><span>01:00:01 – 02:00:00 (Half‑day)</span></div>
                 <div class="inline-flex items-center gap-2 mr-4"><span class="inline-block h-3 w-3 rounded-sm bg-rose-100 border border-rose-300"></span><span>≥ 02:00:01 (Full‑day)</span></div>
-                <div class="inline-flex items-center gap-2"><span class="inline-block h-3 w-3 rounded-sm bg-purple-100 border border-purple-300"></span><span>Absent (N/A)</span></div>
+                <div class="inline-flex items-center gap-2 mr-4"><span class="inline-block h-3 w-3 rounded-sm bg-red-100 border border-red-300"></span><span>Absent</span></div>
+                <div class="inline-flex items-center gap-2"><span class="inline-block h-3 w-3 rounded-sm bg-purple-100 border border-purple-300"></span><span>N/A</span></div>
             </div>
             </div>
         </section>
@@ -169,16 +327,17 @@
     </footer>
 
     <script>
-        const datePicker = document.getElementById('datePicker');
-        const selectedDateLabel = document.getElementById('selectedDateLabel');
-        const tableBody = document.querySelector('#attendanceTable tbody');
-        const refreshBtn = document.getElementById('refreshBtn');
-        const exportExcelBtn = document.getElementById('exportExcelBtn');
-        const exportPdfBtn = document.getElementById('exportPdfBtn');
-        const searchInput = document.getElementById('searchInput');
+        // Global variables
+        let datePicker, selectedDateLabel, tableBody, refreshBtn, exportExcelBtn, exportPdfBtn;
+        let searchInput, addRecordBtn, addRecordModal, modalFacultySelect, modalCheckinTime;
+        let modalCheckoutTime, modalCancelBtn, modalAddBtn, addRecordForm;
 
         // Local cache for faster client-side filtering
         let cachedRows = [];
+        
+        // State preservation variables
+        let savedScrollPosition = 0;
+        let savedSearchValue = '';
 
         function formatYMD(date) {
             const y = date.getFullYear();
@@ -188,7 +347,219 @@
         }
 
         function setSelectedDateLabel(ymd) {
+            // Ensure selectedDateLabel is defined
+            if (!selectedDateLabel) {
+                selectedDateLabel = document.getElementById('selectedDateLabel');
+                if (!selectedDateLabel) {
+                    console.error('selectedDateLabel not found');
+                    return;
+                }
+            }
             selectedDateLabel.textContent = ymd;
+        }
+
+        function saveCurrentState() {
+            // Save scroll position
+            savedScrollPosition = window.pageYOffset || document.documentElement.scrollTop;
+            
+            // Save search value
+            if (searchInput) {
+                savedSearchValue = searchInput.value;
+                
+                // Also save to localStorage for persistence across page reloads
+                localStorage.setItem('attendanceSearchValue', savedSearchValue);
+                localStorage.setItem('attendanceScrollPosition', savedScrollPosition.toString());
+                
+                console.log('Search state saved:', savedSearchValue);
+            }
+        }
+
+        function restoreState() {
+            console.log('Restoring state - savedSearchValue:', savedSearchValue);
+            
+            // Restore scroll position
+            if (savedScrollPosition > 0) {
+                setTimeout(() => {
+                    window.scrollTo(0, savedScrollPosition);
+                }, 100);
+            }
+            
+            // Restore search value and apply filter
+            if (savedSearchValue && searchInput) {
+                console.log('Restoring search value:', savedSearchValue);
+                searchInput.value = savedSearchValue;
+                // Apply filter after ensuring the table is fully rendered
+                setTimeout(() => {
+                    console.log('Applying filter with value:', searchInput.value);
+                    if (cachedRows && cachedRows.length > 0) {
+                        applyFilter();
+                    }
+                }, 150);
+            }
+        }
+
+        function loadPersistedState() {
+            // Load state from localStorage
+            const persistedSearch = localStorage.getItem('attendanceSearchValue');
+            const persistedScroll = localStorage.getItem('attendanceScrollPosition');
+            
+            if (persistedSearch && searchInput) {
+                savedSearchValue = persistedSearch;
+                searchInput.value = persistedSearch;
+            }
+            
+            if (persistedScroll) {
+                savedScrollPosition = parseInt(persistedScroll, 10);
+            }
+        }
+
+        async function loadFacultyDropdown() {
+            try {
+                const response = await fetch('/api/faculty-list');
+                if (response.ok) {
+                    const facultyList = await response.json();
+                    modalFacultySelect.innerHTML = '<option value="">Select Faculty Member</option>';
+                    
+                    facultyList.forEach(faculty => {
+                        const option = document.createElement('option');
+                        option.value = faculty.id;
+                        option.textContent = `${faculty.id} - ${faculty.name}`;
+                        modalFacultySelect.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading faculty list:', error);
+            }
+        }
+
+        function showAddRecordModal() {
+            if (addRecordModal) {
+                addRecordModal.classList.remove('hidden');
+                // Reset form
+                if (addRecordForm) {
+                    addRecordForm.reset();
+                }
+                if (modalFacultySelect) {
+                    modalFacultySelect.value = '';
+                }
+            }
+        }
+
+        function hideAddRecordModal() {
+            if (addRecordModal) {
+                addRecordModal.classList.add('hidden');
+                // Reset form
+                if (addRecordForm) {
+                    addRecordForm.reset();
+                }
+                if (modalFacultySelect) {
+                    modalFacultySelect.value = '';
+                }
+            }
+        }
+
+        async function addNewRecord() {
+            const selectedFacultyId = modalFacultySelect.value;
+            const checkinTime = modalCheckinTime.value;
+            const checkoutTime = modalCheckoutTime.value;
+
+            console.log('addNewRecord called with:', {
+                selectedFacultyId,
+                checkinTime,
+                checkoutTime,
+                currentDate: datePicker.value
+            });
+
+            if (!selectedFacultyId) {
+                showErrorPopup('Selection Required', 'Please select a faculty member.');
+                return;
+            }
+
+            try {
+                // Show loading state
+                modalAddBtn.disabled = true;
+                modalAddBtn.textContent = 'Adding...';
+
+                // Get faculty name
+                const facultyList = await fetch('/api/faculty-list');
+                const facultyData = await facultyList.json();
+                const selectedFaculty = facultyData.find(f => f.id === selectedFacultyId);
+                const facultyName = selectedFaculty ? selectedFaculty.name : '';
+
+                // Check if at least one time is provided
+                if (checkinTime || checkoutTime) {
+                    // At least one time provided - save to JSON file
+                    console.log('Sending request to /api/attendance/add with data:', {
+                        faculty_id: selectedFacultyId,
+                        date: datePicker.value,
+                        checkin: checkinTime,
+                        checkout: checkoutTime
+                    });
+
+                    const response = await fetch('/api/attendance/add', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            faculty_id: selectedFacultyId,
+                            date: datePicker.value,
+                            checkin: checkinTime,
+                            checkout: checkoutTime
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        // Close modal
+                        hideAddRecordModal();
+                        
+                        // Reload attendance data to show the new record
+                        await loadAttendance(datePicker.value);
+                        
+                        console.log('Successfully added record to JSON file for', selectedFacultyId);
+                    } else {
+                        showErrorPopup('Add Record Failed', result.error);
+                    }
+                } else {
+                    // No times provided - create UI-only placeholder
+                    const placeholderRecord = {
+                        'student_id': selectedFacultyId,
+                        'name': facultyName,
+                        'checkin': checkinTime || '',
+                        'checkout': checkoutTime || '',
+                        'delay': 'N/A',
+                        'isPlaceholder': true,
+                        'isNewRecord': true  // Flag to indicate this is a new record that needs to be saved when edited
+                    };
+                    
+                    // Add to cached rows
+                    cachedRows.push(placeholderRecord);
+                    
+                    // Sort cached rows
+                    cachedRows.sort((a, b) => {
+                        const aId = (a.student_id || '').toString();
+                        const bId = (b.student_id || '').toString();
+                        return aId.localeCompare(bId, undefined, { numeric: true, sensitivity: 'base' });
+                    });
+
+                    // Re-render table with new placeholder
+                    renderTable(cachedRows);
+                    
+                    // Close modal
+                    hideAddRecordModal();
+                    
+                    console.log('Added UI-only placeholder record for', selectedFacultyId);
+                }
+
+            } catch (error) {
+                showErrorPopup('Network Error', `Error adding record: ${error.message}`);
+            } finally {
+                // Restore button state
+                modalAddBtn.disabled = false;
+                modalAddBtn.textContent = 'Add Record';
+            }
         }
 
         function toReadable(ts) {
@@ -215,27 +586,82 @@
         }
 
         async function loadAttendance(ymd) {
+            // Ensure tableBody is defined
+            if (!tableBody) {
+                tableBody = document.querySelector('#attendanceTable tbody');
+                if (!tableBody) {
+                    console.error('tableBody is null, cannot load attendance');
+                    return;
+                }
+            }
+            
+            // Ensure selectedDateLabel is defined
+            if (!selectedDateLabel) {
+                selectedDateLabel = document.getElementById('selectedDateLabel');
+                if (!selectedDateLabel) {
+                    console.error('selectedDateLabel is null, cannot set date label');
+                    return;
+                }
+            }
+            
+            try {
             setSelectedDateLabel(ymd);
-            tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-gray">Loading...</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="6" class="text-center text-gray">Loading...</td></tr>';
+            } catch (error) {
+                console.error('Error setting up loading state:', error);
+                return;
+            }
             try {
                 const res = await fetch(`/api/attendance?date=${encodeURIComponent(ymd)}`);
-                if (!res.ok) throw new Error('Failed to fetch attendance');
+                if (!res.ok) {
+                    if (res.status === 401) {
+                        // Redirect to login if not authenticated
+                        window.location.href = '/login';
+                        return;
+                    }
+                    throw new Error('Failed to fetch attendance');
+                }
                 let rows = await res.json();
+                console.log('Raw data from backend:', rows);
+                
+                // Debug: Check specifically for BBHCF048 records
+                const bbcfRecords = rows.filter(r => r.student_id === 'BBHCF048');
+                console.log('BBHCF048 records from backend:', bbcfRecords);
                 if (Array.isArray(rows)) {
                     rows = rows.slice().sort((a, b) => {
                         const aId = (a.student_id || '').toString();
                         const bId = (b.student_id || '').toString();
                         return aId.localeCompare(bId, undefined, { numeric: true, sensitivity: 'base' });
                     });
+                    console.log('Sorted data:', rows);
                 }
-                cachedRows = rows;
-                if (!Array.isArray(rows) || rows.length === 0) {
-                    tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-gray">No records</td></tr>';
+                // Add placeholders for faculty members who don't have any records
+                const rowsWithPlaceholders = await addPlaceholdersForMissingFaculty(rows);
+                cachedRows = rowsWithPlaceholders;
+                console.log('Final data with placeholders:', rowsWithPlaceholders);
+                
+                if (!Array.isArray(rowsWithPlaceholders) || rowsWithPlaceholders.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="6" class="text-center text-gray">No records</td></tr>';
                     return;
                 }
-                renderTable(rows);
+                try {
+                    console.log('Rendering table with data...');
+                renderTable(rowsWithPlaceholders);
+                
+                // Restore state after rendering with a longer delay to ensure everything is ready
+                setTimeout(() => {
+                        try {
+                    restoreState();
+                        } catch (restoreError) {
+                            console.error('Error restoring state:', restoreError);
+                        }
+                }, 100);
+                } catch (renderError) {
+                    console.error('Error rendering table:', renderError);
+                    tableBody.innerHTML = '<tr><td colspan="6" class="text-center text-red-500">Error rendering table</td></tr>';
+                }
             } catch (err) {
-                tableBody.innerHTML = `<tr><td colspan="5" class="text-center" style="color:#b91c1c">${err.message}</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="6" class="text-center" style="color:#b91c1c">${err.message}</td></tr>`;
             }
         }
 
@@ -247,9 +673,208 @@
             return (hh * 3600) + (mm * 60) + ss;
         }
 
+        function secondsToHMS(totalSeconds) {
+            if (totalSeconds < 0) totalSeconds = 0;
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function extractTimeFromDateTime(dateTimeStr) {
+            if (!dateTimeStr) return '';
+            
+            // Handle both datetime format (2025-10-24T09:26:12) and time-only format (09:26:12)
+            if (dateTimeStr.includes('T')) {
+                // Extract time part from datetime
+                const timePart = dateTimeStr.split('T')[1];
+                return timePart.split('.')[0]; // Remove milliseconds if present
+            } else if (dateTimeStr.match(/^\d{2}:\d{2}:\d{2}$/)) {
+                // Already in time format
+                return dateTimeStr;
+            }
+            
+            return '';
+        }
+
+        function calculateDelayForFaculty(facultyId, dateStr) {
+            console.log('calculateDelayForFaculty called for:', facultyId, 'on date:', dateStr);
+            
+            // Get all records for this faculty from cachedRows
+            const facultyRecords = cachedRows.filter(r => 
+                (r.student_id || '').toString().toUpperCase() === facultyId.toUpperCase()
+            );
+            
+            console.log('Found faculty records:', facultyRecords);
+            
+            if (facultyRecords.length === 0) return 'N/A';
+            
+            // Parse date to determine if it's Saturday
+            const dateObj = new Date(dateStr);
+            const isSaturday = dateObj.getDay() === 6; // 6 = Saturday
+            
+            // Determine staff type (simplified - you might want to fetch this from backend)
+            // For now, assume teaching staff (most common)
+            const checkinDeadline = '09:25:00';
+            const checkoutAfter = isSaturday ? '13:00:00' : '16:30:00';
+            
+            // Find earliest check-in and latest check-out
+            let earliestCheckin = null;
+            let latestCheckout = null;
+            
+            facultyRecords.forEach(record => {
+                const checkinTime = record.checkin;
+                const checkoutTime = record.checkout;
+                
+                // Handle both time-only format (HH:MM:SS) and full datetime format
+                if (checkinTime && checkinTime.trim() !== '') {
+                    let checkinDateTime;
+                    if (checkinTime.includes('T') || checkinTime.includes(' ')) {
+                        // Full datetime format
+                        checkinDateTime = new Date(checkinTime);
+                    } else {
+                        // Time-only format
+                        checkinDateTime = new Date(`${dateStr}T${checkinTime}`);
+                    }
+                    
+                    if (!isNaN(checkinDateTime.getTime()) && (!earliestCheckin || checkinDateTime < earliestCheckin)) {
+                        earliestCheckin = checkinDateTime;
+                    }
+                }
+                
+                if (checkoutTime && checkoutTime.trim() !== '') {
+                    let checkoutDateTime;
+                    if (checkoutTime.includes('T') || checkoutTime.includes(' ')) {
+                        // Full datetime format
+                        checkoutDateTime = new Date(checkoutTime);
+                    } else {
+                        // Time-only format
+                        checkoutDateTime = new Date(`${dateStr}T${checkoutTime}`);
+                    }
+                    
+                    if (!isNaN(checkoutDateTime.getTime()) && (!latestCheckout || checkoutDateTime > latestCheckout)) {
+                        latestCheckout = checkoutDateTime;
+                    }
+                }
+            });
+            
+            if (!earliestCheckin) return 'N/A';
+            
+            // Calculate check-in delay
+            const deadlineDateTime = new Date(`${dateStr}T${checkinDeadline}`);
+            let totalDelaySeconds = 0;
+            
+            if (earliestCheckin > deadlineDateTime) {
+                totalDelaySeconds += Math.round((earliestCheckin - deadlineDateTime) / 1000);
+            }
+            
+            // Calculate check-out delay (early leave penalty)
+            if (latestCheckout) {
+                const requiredDateTime = new Date(`${dateStr}T${checkoutAfter}`);
+                if (latestCheckout < requiredDateTime) {
+                    totalDelaySeconds += Math.ceil((requiredDateTime - latestCheckout) / 1000);
+                }
+            }
+            
+            return secondsToHMS(totalDelaySeconds);
+        }
+
+        function updateDelayDisplay(facultyId) {
+            console.log('updateDelayDisplay called for faculty:', facultyId);
+            
+            // Ensure tableBody is defined
+            if (!tableBody) {
+                tableBody = document.querySelector('#attendanceTable tbody');
+                if (!tableBody) {
+                    console.error('tableBody not found');
+                    return;
+                }
+            }
+            
+            // Check if cachedRows is available
+            if (!cachedRows || cachedRows.length === 0) {
+                console.log('No cached rows available for delay calculation');
+                return;
+            }
+            
+            // Find all rows for this faculty and update their delay display
+            const rows = Array.from(tableBody.querySelectorAll('tr'));
+            if (rows.length === 0) {
+                console.log('No table rows found');
+                return;
+            }
+            
+            const facultyRows = rows.filter(row => {
+                if (!row || typeof row.querySelector !== 'function') {
+                    return false;
+                }
+                const facultyIdCell = row.querySelector('td:first-child');
+                return facultyIdCell && facultyIdCell.textContent && facultyIdCell.textContent.trim().toUpperCase() === facultyId.toUpperCase();
+            });
+            
+            if (facultyRows.length === 0) {
+                console.log('No faculty rows found for:', facultyId);
+                return;
+            }
+            
+            console.log('Found', facultyRows.length, 'rows for faculty:', facultyId);
+            
+            // Calculate new delay
+            const newDelay = calculateDelayForFaculty(facultyId, datePicker.value);
+            console.log('Calculated new delay:', newDelay);
+            
+            // Update the delay cell (first row of the group)
+            const firstRow = facultyRows[0];
+            if (!firstRow) {
+                console.error('First row not found for faculty:', facultyId);
+                return;
+            }
+            
+            const delayCell = firstRow && typeof firstRow.querySelector === 'function' ? firstRow.querySelector('td:nth-child(5)') : null; // Delay column
+            
+            if (delayCell) {
+                console.log('Updating delay cell with:', newDelay);
+                if (newDelay === 'N/A' || newDelay === '00:00:00') {
+                    delayCell.textContent = newDelay === 'N/A' ? 'Absent' : '00:00:00';
+                    delayCell.className = newDelay === 'N/A' 
+                        ? 'px-4 py-3 whitespace-nowrap font-semibold text-rose-600'
+                        : 'px-4 py-3 whitespace-nowrap text-slate-800';
+                } else {
+                    delayCell.textContent = newDelay;
+                    delayCell.className = 'px-4 py-3 whitespace-nowrap text-slate-800';
+                }
+                
+                // Update row background color based on delay
+                const delaySeconds = hmsToSeconds(newDelay);
+                let colorClass = '';
+                if (newDelay === 'N/A') {
+                    colorClass = 'bg-purple-50';
+                } else if (delaySeconds <= 3600) { // ≤ 1 hour
+                    colorClass = 'bg-emerald-50';
+                } else if (delaySeconds <= 7200) { // ≤ 2 hours
+                    colorClass = 'bg-amber-50';
+                } else { // > 2 hours
+                    colorClass = 'bg-rose-50';
+                }
+                
+                // Update background color for all rows in this faculty group
+                facultyRows.forEach(row => {
+                    row.className = `group ${colorClass}`;
+                });
+            }
+            
+            // Update cachedRows with new delay
+            cachedRows.forEach(record => {
+                if ((record.student_id || '').toString().toUpperCase() === facultyId.toUpperCase()) {
+                    record.delay = newDelay;
+                }
+            });
+        }
+
         function classifyDelayColor(delayVal) {
             if (!delayVal || typeof delayVal !== 'string') return '';
             if (delayVal.toUpperCase() === 'N/A') return 'bg-purple-50';
+            if (delayVal.toUpperCase() === 'ABSENT') return 'bg-red-50';
             const s = hmsToSeconds(delayVal);
             if (s === 0) return 'bg-emerald-50';
             if (s <= 3600) return 'bg-emerald-50';
@@ -257,7 +882,61 @@
             return 'bg-rose-50';
         }
 
+        async function addPlaceholdersForMissingFaculty(rows) {
+            try {
+                // Load faculty list to get all faculty members
+                const facultyRes = await fetch('/api/faculty-list');
+                if (!facultyRes.ok) {
+                    console.error('Failed to load faculty list');
+                    return rows;
+                }
+                const facultyList = await facultyRes.json();
+                
+                // Get faculty IDs that already have records
+                const existingFacultyIds = new Set();
+                rows.forEach(r => existingFacultyIds.add((r.student_id || '').toString().toUpperCase()));
+                
+                // Add placeholders for faculty members who don't have any records
+                const rowsWithPlaceholders = [...rows];
+                facultyList.forEach(faculty => {
+                    const facultyId = faculty.id.toString().toUpperCase();
+                    if (!existingFacultyIds.has(facultyId)) {
+                        const placeholderRecord = {
+                            'student_id': faculty.id,
+                            'name': faculty.name,
+                            'checkin': '',
+                            'checkout': '',
+                            'delay': 'N/A',
+                            'isPlaceholder': true
+                        };
+                        rowsWithPlaceholders.push(placeholderRecord);
+                    }
+                });
+                
+                // Sort by faculty ID
+                rowsWithPlaceholders.sort((a, b) => {
+                    const aId = (a.student_id || '').toString();
+                    const bId = (b.student_id || '').toString();
+                    return aId.localeCompare(bId, undefined, { numeric: true, sensitivity: 'base' });
+                });
+                
+                return rowsWithPlaceholders;
+            } catch (error) {
+                console.error('Error adding placeholders:', error);
+                return rows;
+            }
+        }
+
         function renderTable(rows) {
+            // Ensure tableBody is defined
+            if (!tableBody) {
+                tableBody = document.querySelector('#attendanceTable tbody');
+                if (!tableBody) {
+                    console.error('tableBody is null, cannot render table');
+                    return;
+                }
+            }
+            
             tableBody.innerHTML = '';
             // Group by student_id to rowspan delay per person
             const groups = {};
@@ -271,27 +950,51 @@
                 const rowColorClass = classifyDelayColor(groupDelayVal);
                 group.forEach((r, idx) => {
                     const tr = document.createElement('tr');
-                    if (rowColorClass) tr.className = rowColorClass;
+                    tr.className = `group ${rowColorClass || ''}`;
+                    
+                    // Add data attributes for placeholder records
+                    if (r.isPlaceholder) {
+                        tr.dataset.isPlaceholder = 'true';
+                    }
+                    if (r.isNewRecord) {
+                        tr.dataset.isNewRecord = 'true';
+                    }
+                    
                     const tdId = document.createElement('td');
                     const tdName = document.createElement('td');
                     const tdIn = document.createElement('td');
                     const tdOut = document.createElement('td');
-                    tdId.className = 'px-4 py-3 whitespace-nowrap text-slate-800';
+                    const tdActions = document.createElement('td');
+                    tdId.className = 'px-4 py-3 whitespace-nowrap text-slate-800 font-medium';
                     tdName.className = 'px-4 py-3 break-words text-slate-800';
-                    tdIn.className = 'px-4 py-3 whitespace-nowrap text-slate-800';
-                    tdOut.className = 'px-4 py-3 whitespace-nowrap text-slate-800';
+                    tdIn.className = 'px-4 py-3 whitespace-nowrap text-slate-800 min-w-32';
+                    tdOut.className = 'px-4 py-3 whitespace-nowrap text-slate-800 min-w-32';
+                    tdActions.className = 'px-4 py-3 text-center w-16';
                     tdId.textContent = r.student_id || '';
                     tdName.textContent = r.name || '';
-                    tdIn.textContent = toTimeOnly(r.checkin);
-                    tdOut.textContent = toTimeOnly(r.checkout);
+                    
+                    // Create editable check-in cell
+                    const checkinTime = toTimeOnly(r.checkin);
+                    tdIn.innerHTML = createEditableTimeCell(checkinTime, r.student_id, 'checkin', datePicker.value, r.isNewRecord);
+                    
+                    // Create editable check-out cell
+                    const checkoutTime = toTimeOnly(r.checkout);
+                    tdOut.innerHTML = createEditableTimeCell(checkoutTime, r.student_id, 'checkout', datePicker.value, r.isNewRecord);
+                    
+                    // Create delete button
+                    tdActions.innerHTML = createDeleteButton(r.student_id, datePicker.value);
+                    
                     tr.appendChild(tdId);
                     tr.appendChild(tdName);
                     tr.appendChild(tdIn);
                     tr.appendChild(tdOut);
+                    
+                    // Add delay column for first row of each group
                     if (idx === 0) {
                         const tdDelay = document.createElement('td');
                         const delayVal = (r.delay ?? '').toString();
-                        if (delayVal.toUpperCase() === 'N/A') {
+                        console.log('Delay value for group:', delayVal, 'Type:', typeof delayVal);
+                        if (delayVal.toUpperCase() === 'N/A' || delayVal === '' || !delayVal) {
                             tdDelay.textContent = 'Absent';
                             tdDelay.className = 'px-4 py-3 whitespace-nowrap font-semibold text-rose-600';
                         } else {
@@ -301,42 +1004,846 @@
                         tdDelay.rowSpan = group.length;
                         tr.appendChild(tdDelay);
                     }
+                    
+                    tr.appendChild(tdActions);
                     tableBody.appendChild(tr);
                 });
             });
         }
 
-        // initialize with current date
-        const todayYmd = formatYMD(new Date());
-        datePicker.value = todayYmd;
-        loadAttendance(todayYmd);
+        function createEditableTimeCell(timeValue, facultyId, timeType, dateValue, isNewRecord = false) {
+            const isEmpty = !timeValue || timeValue.trim() === '';
+            const displayText = isEmpty ? 'Not recorded' : timeValue;
+            const textClass = isEmpty ? 'text-slate-400 italic' : '';
+            
+            
+            return `
+                <div class="flex items-center justify-between min-w-0 group">
+                    <span class="time-display ${textClass} flex-1 truncate">${displayText}</span>
+                    <button class="edit-btn opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-2 hover:bg-slate-100 rounded flex-shrink-0 ml-2 cursor-pointer min-w-[32px] min-h-[32px] flex items-center justify-center" 
+                            onclick="editTime('${facultyId}', '${timeType}', '${dateValue}', this, ${isNewRecord})" 
+                            title="Edit ${timeType} time">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4 text-slate-500 hover:text-slate-700">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                    </button>
+                </div>
+            `;
+        }
 
-        datePicker.addEventListener('change', () => loadAttendance(datePicker.value));
-        refreshBtn.addEventListener('click', () => loadAttendance(datePicker.value));
+        function createDeleteButton(facultyId, dateValue) {
+            return `
+                <div class="flex justify-center group">
+                    <button class="delete-btn opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-2 hover:bg-red-100 rounded-full cursor-pointer min-w-[32px] min-h-[32px] flex items-center justify-center" 
+                            onclick="deleteRecord('${facultyId}', '${dateValue}', this)" 
+                            title="Delete this record">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4 text-red-500 hover:text-red-700">
+                            <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/>
+                        </svg>
+                    </button>
+                </div>
+            `;
+        }
+
+        async function editTime(facultyId, timeType, dateValue, button, isNewRecord = false) {
+            try {
+            // Save current state before editing
+            saveCurrentState();
+            
+            const cell = button.closest('td');
+            
+            if (!cell) {
+                showErrorPopup('Table Error', 'Could not find table cell. Please try again.');
+                return;
+            }
+            
+            const timeDisplay = cell.querySelector('.time-display');
+            
+            if (!timeDisplay) {
+                showErrorPopup('Element Error', 'Could not find time display element. Please try again.');
+                return;
+            }
+            
+            const currentTime = timeDisplay.textContent;
+            
+            // Create input field
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.autocomplete = 'off';
+            input.spellcheck = false;
+            // If current time is "Not recorded", start with empty field
+            input.value = currentTime === 'Not recorded' ? '' : currentTime;
+            input.className = 'w-24 px-2 py-1 text-sm border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-brand-600';
+            input.placeholder = 'HH:MM:SS';
+            input.style.cursor = 'text';
+            input.style.fontFamily = 'monospace';
+            input.style.caretColor = '#3b82f6'; // Blue cursor color
+            input.tabIndex = 0;
+            input.readOnly = false;
+            input.disabled = false;
+            
+            // Create save and cancel buttons
+            const saveBtn = document.createElement('button');
+            saveBtn.innerHTML = '✓';
+            saveBtn.className = 'px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700';
+            saveBtn.title = 'Save';
+            
+            const cancelBtn = document.createElement('button');
+            cancelBtn.innerHTML = '✕';
+            cancelBtn.className = 'px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700 ml-1';
+            cancelBtn.title = 'Cancel';
+            
+            // Replace cell content
+            cell.innerHTML = '';
+            cell.appendChild(input);
+            cell.appendChild(saveBtn);
+            cell.appendChild(cancelBtn);
+            
+            // Focus input and select text after DOM update
+            setTimeout(() => {
+                console.log('Attempting to focus input field');
+                try {
+                    // Multiple focus attempts with different methods
+                input.focus();
+                input.select();
+                    
+                    // Force focus with click if needed
+                    if (document.activeElement !== input) {
+                        input.click();
+                        input.focus();
+                    }
+                    
+                    // Ensure cursor appears
+                    input.setSelectionRange(0, input.value.length);
+                    
+                console.log('Focus and select completed, input value:', input.value);
+                    console.log('Active element:', document.activeElement);
+                    console.log('Input focused:', document.activeElement === input);
+                } catch (focusError) {
+                    console.error('Error focusing input:', focusError);
+                }
+            }, 150);
+            
+            // Additional focus attempt after a longer delay
+            setTimeout(() => {
+                if (document.activeElement !== input) {
+                    console.log('Second focus attempt');
+                    input.focus();
+                input.click();
+                }
+            }, 300);
+            
+            // Event handlers
+            const saveChanges = async () => {
+                try {
+                const newTime = input.value.trim();
+                
+                // Allow empty values to clear the time
+                if (newTime && newTime !== '') {
+                    // Validate time format only if not empty
+                    const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$/;
+                    if (!timeRegex.test(newTime)) {
+                            showErrorPopup('Invalid Format', 'Please enter time in HH:MM:SS format or leave empty to clear');
+                        return;
+                    }
+                }
+                
+                try {
+                    // Show loading state
+                    saveBtn.innerHTML = '...';
+                    saveBtn.disabled = true;
+                    cancelBtn.disabled = true;
+                    
+                    // Use the passed isNewRecord parameter instead of trying to find it from DOM
+                    
+                    if (isNewRecord) {
+                        // This is a new placeholder record - update the placeholder in UI first
+                        const recordIndex = cachedRows.findIndex(r => 
+                            r.student_id === facultyId && r.isNewRecord === true
+                        );
+                        
+                        if (recordIndex !== -1) {
+                            // Update the placeholder record with the new time
+                            if (timeType === 'checkin') {
+                                cachedRows[recordIndex].checkin = newTime;
+                            } else if (timeType === 'checkout') {
+                                cachedRows[recordIndex].checkout = newTime;
+                            }
+                            
+                            // Check if this record now has at least one valid time
+                            const hasCheckin = cachedRows[recordIndex].checkin && cachedRows[recordIndex].checkin.trim() !== '';
+                            const hasCheckout = cachedRows[recordIndex].checkout && cachedRows[recordIndex].checkout.trim() !== '';
+                            
+                            if (hasCheckin || hasCheckout) {
+                                // Record now has valid time - save it to JSON file
+                                console.log('Placeholder record now has valid time, saving to JSON file...');
+                                
+                                try {
+                                    const saveData = {
+                                        faculty_id: facultyId,
+                                        date: dateValue,
+                                        checkin: cachedRows[recordIndex].checkin || '',
+                                        checkout: cachedRows[recordIndex].checkout || ''
+                                    };
+                                    
+                                    console.log('Saving placeholder record to JSON:', saveData);
+                                    
+                                    const response = await fetch('/api/attendance/add', {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                        },
+                                        body: JSON.stringify(saveData)
+                                    });
+                                    
+                                    const result = await response.json();
+                                    
+                                    if (result.success) {
+                                        console.log('Successfully saved placeholder record to JSON file');
+                                        
+                                        // Remove the isNewRecord flag since it's now saved
+                                        cachedRows[recordIndex].isNewRecord = false;
+                                        cachedRows[recordIndex].isPlaceholder = false;
+                                        
+                                        // Reload data to get the updated record from server
+                                        await loadAttendance(dateValue);
+                                        return; // Exit early since loadAttendance will refresh the display
+                                    } else {
+                                        console.error('Failed to save placeholder record:', result.error);
+                                        showErrorPopup('Save Failed', result.error);
+                                    }
+                                } catch (error) {
+                                    console.error('Error saving placeholder record:', error);
+                                    showErrorPopup('Save Error', 'Error saving record. Please try again.');
+                                }
+                            }
+                            
+                            // Update delay display for the new record
+                            // Simple approach: re-render the table
+                            renderTable(cachedRows);
+                            
+                            // Update the time display in the current cell
+                            const displayTime = newTime || 'Not recorded';
+                            cell.innerHTML = createEditableTimeCell(displayTime, facultyId, timeType, dateValue, isNewRecord);
+                            
+                            // Show success message
+                            console.log(`Updated ${timeType} time for new record: ${newTime}`);
+                        } else {
+                            showErrorPopup('Record Error', 'Could not find the new record to update.');
+                            // Restore original content
+                            cell.innerHTML = createEditableTimeCell(currentTime, facultyId, timeType, dateValue, isNewRecord);
+                        }
+                    } else {
+                        // This is an existing record - update it normally
+                        const updateData = {
+                            faculty_id: facultyId,
+                            date: dateValue
+                        };
+                        
+                        // Get current values from cached data instead of DOM
+                        // Find the specific record by looking at the current cell's row
+                        const row = button.closest('tr');
+                        let recordIndex = -1;
+                        
+                        if (row && row.parentNode) {
+                            const rowIndex = Array.from(row.parentNode.children).indexOf(row) - 1; // -1 for header row
+                            if (rowIndex >= 0 && rowIndex < cachedRows.length) {
+                                // Use row index to find the exact record
+                                recordIndex = rowIndex;
+                                console.log(`Using row index ${rowIndex} to find record`);
+                            }
+                        }
+                        
+                        if (recordIndex === -1) {
+                            // Try alternative method: find by cell position in table
+                            console.log('Row-based lookup failed, trying cell position method');
+                            const tableBody = document.querySelector('#attendanceTable tbody');
+                            if (tableBody) {
+                                const allRows = Array.from(tableBody.children);
+                                const cellRowIndex = allRows.findIndex(row => row.contains(button));
+                                if (cellRowIndex >= 0 && cellRowIndex < cachedRows.length) {
+                                    recordIndex = cellRowIndex;
+                                    console.log(`Found record using cell position: ${recordIndex}`);
+                                }
+                            }
+                        }
+                        
+                        // Additional method: find by matching the current time values
+                        if (recordIndex === -1) {
+                            console.log('Trying to find record by matching current time values');
+                            const currentTimeDisplay = timeDisplay.textContent;
+                            console.log(`Looking for record with time: ${currentTimeDisplay}`);
+                            
+                            recordIndex = cachedRows.findIndex(r => {
+                                if (timeType === 'checkin') {
+                                    const recordTime = extractTimeFromDateTime(r.checkin || '');
+                                    return recordTime === currentTimeDisplay || 
+                                           (currentTimeDisplay === 'Not recorded' && (!r.checkin || r.checkin === ''));
+                                } else if (timeType === 'checkout') {
+                                    const recordTime = extractTimeFromDateTime(r.checkout || '');
+                                    return recordTime === currentTimeDisplay || 
+                                           (currentTimeDisplay === 'Not recorded' && (!r.checkout || r.checkout === ''));
+                                }
+                                return false;
+                            });
+                            
+                            if (recordIndex !== -1) {
+                                console.log(`Found record by time matching at index: ${recordIndex}`);
+                            }
+                        }
+                        
+                        if (recordIndex === -1) {
+                            // Final fallback: finding by faculty ID (old method)
+                            console.log('All methods failed, using faculty ID fallback');
+                            recordIndex = cachedRows.findIndex(r => 
+                                (r.student_id || '').toString().toUpperCase() === facultyId.toUpperCase()
+                            );
+                        }
+                        
+                        if (recordIndex !== -1) {
+                            const currentRecord = cachedRows[recordIndex];
+                            console.log(`Found record at index ${recordIndex}:`, currentRecord);
+                            console.log(`Record checkin: ${currentRecord.checkin}, checkout: ${currentRecord.checkout}`);
+                            // Convert datetime to time-only format for backend comparison
+                            updateData.current_checkin = extractTimeFromDateTime(currentRecord.checkin || '');
+                            updateData.current_checkout = extractTimeFromDateTime(currentRecord.checkout || '');
+                            console.log(`Sending to backend - current_checkin: ${updateData.current_checkin}, current_checkout: ${updateData.current_checkout}`);
+                        } else {
+                            console.log('No record found, using fallback values');
+                            // Fallback to empty values if record not found
+                            updateData.current_checkin = '';
+                            updateData.current_checkout = '';
+                        }
+                        
+                        // Only add the field being edited
+                        if (newTime && newTime.trim() !== '') {
+                            updateData[timeType] = newTime;
+                        } else {
+                            // If clearing the field, send empty string
+                            updateData[timeType] = '';
+                        }
+                        
+                        // Send update request
+                        console.log('Sending update request:', updateData);
+                        console.log('Current checkin time:', updateData.current_checkin);
+                        console.log('Current checkout time:', updateData.current_checkout);
+                        console.log('New time being set:', updateData[timeType]);
+                        const response = await fetch('/api/attendance/update', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(updateData)
+                        });
+                        
+                        const result = await response.json();
+                        console.log('Backend response:', result);
+                        
+                        if (result.success) {
+                            console.log('Backend update successful - JSON file updated with new time and recalculated delay');
+                            
+                            // Show success message
+                            const successMsg = document.createElement('div');
+                            successMsg.textContent = '✓ Updated successfully! Check console for details.';
+                            successMsg.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg z-50';
+                            document.body.appendChild(successMsg);
+                            
+                            // Remove success message after 3 seconds
+                            setTimeout(() => {
+                                if (successMsg.parentNode) {
+                                    successMsg.parentNode.removeChild(successMsg);
+                                }
+                            }, 3000);
+                            
+                            // Update the display without refreshing
+                            console.log('Updating display without refresh...');
+                            console.log('Calling loadAttendance with date:', dateValue);
+                            loadAttendance(dateValue);
+                        } else {
+                            if (response.status === 401) {
+                                // Redirect to login if not authenticated
+                                window.location.href = '/login';
+                                return;
+                            }
+                            showErrorPopup('Update Failed', result.error);
+                            // Restore original content
+                            cell.innerHTML = createEditableTimeCell(currentTime, facultyId, timeType, dateValue, isNewRecord);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error updating attendance:', error);
+                    // Don't show alert for querySelector errors
+                    if (error.message && error.message.includes('querySelector')) {
+                        console.log('querySelector error in saveChanges - update was successful, updating display...');
+                        // Update display without refresh
+                        loadAttendance(dateValue);
+                    } else {
+                        showErrorPopup('Update Error', `Error updating attendance: ${error.message}`);
+                        // Restore original content
+                        cell.innerHTML = createEditableTimeCell(currentTime, facultyId, timeType, dateValue, isNewRecord);
+                    }
+                }
+                } catch (outerError) {
+                    console.error('Outer error in saveChanges:', outerError);
+                    showErrorPopup('Unexpected Error', 'An unexpected error occurred. Please try again.');
+                    // Restore original content
+                    cell.innerHTML = createEditableTimeCell(currentTime, facultyId, timeType, dateValue, isNewRecord);
+                }
+            };
+            
+            const cancelEdit = () => {
+                // Restore original content, handling "Not recorded" case
+                const originalTime = currentTime === 'Not recorded' ? '' : currentTime;
+                cell.innerHTML = createEditableTimeCell(originalTime, facultyId, timeType, dateValue, isNewRecord);
+            };
+            
+            saveBtn.addEventListener('click', saveChanges);
+            cancelBtn.addEventListener('click', cancelEdit);
+            
+            // Handle Enter key
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    saveChanges();
+                } else if (e.key === 'Escape') {
+                    cancelEdit();
+                }
+            });
+            
+            // Handle input events to ensure the field is working
+            input.addEventListener('input', (e) => {
+                console.log('Input value changed to:', e.target.value);
+            });
+            
+            // Handle focus events
+            input.addEventListener('focus', (e) => {
+                console.log('Input field focused');
+            });
+            } catch (error) {
+                console.error('Error in editTime function:', error);
+                // Don't show alert for querySelector errors, just log them
+                if (error.message && error.message.includes('querySelector')) {
+                    console.log('querySelector error caught and handled');
+                } else {
+                    showErrorPopup('Edit Error', 'An error occurred while editing. Please try again.');
+                }
+            }
+        }
+
+        function showDeleteConfirmation(facultyId, dateValue, button, recordInfo) {
+            // Create custom modal
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            modal.innerHTML = `
+                <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+                    <div class="flex items-center mb-4">
+                        <div class="flex-shrink-0">
+                            <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-lg font-medium text-gray-900">Delete Attendance Record</h3>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <p class="text-sm text-gray-500">
+                            Are you sure you want to delete this specific attendance record?
+                        </p>
+                        <div class="mt-2 p-3 bg-gray-50 rounded-md">
+                            <p class="text-sm font-medium text-gray-900">${recordInfo.facultyId} - ${recordInfo.facultyName}</p>
+                            <p class="text-sm text-gray-600">Check-in: ${recordInfo.checkin || 'Not recorded'}</p>
+                            <p class="text-sm text-gray-600">Check-out: ${recordInfo.checkout || 'Not recorded'}</p>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">
+                            Only this specific record will be deleted. If this is the last record for this faculty, a placeholder will be created.
+                        </p>
+                    </div>
+                    <div class="flex justify-end space-x-3">
+                        <button id="cancelDelete" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md">
+                            Cancel
+                        </button>
+                        <button id="confirmDelete" class="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md">
+                            Delete Record
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // Handle button clicks
+            document.getElementById('cancelDelete').addEventListener('click', () => {
+                document.body.removeChild(modal);
+            });
+            
+            document.getElementById('confirmDelete').addEventListener('click', () => {
+                document.body.removeChild(modal);
+                performDelete(facultyId, dateValue, button);
+            });
+            
+            // Close on backdrop click
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    document.body.removeChild(modal);
+                }
+            });
+        }
+
+        async function deleteRecord(facultyId, dateValue, button) {
+            // Save current state before deleting
+            saveCurrentState();
+            
+            // Get record information for confirmation
+            const row = button.closest('tr');
+            const facultyName = row.cells[1].textContent;
+            const checkinTime = row.cells[2].querySelector('.time-display')?.textContent || 'Not recorded';
+            const checkoutTime = row.cells[3].querySelector('.time-display')?.textContent || 'Not recorded';
+            
+            const recordInfo = {
+                facultyId: facultyId,
+                facultyName: facultyName,
+                checkin: checkinTime,
+                checkout: checkoutTime
+            };
+            
+            showDeleteConfirmation(facultyId, dateValue, button, recordInfo);
+        }
+
+        async function performDelete(facultyId, dateValue, button) {
+            try {
+                // Check if this is a placeholder record
+                const row = button.closest('tr');
+                const isPlaceholder = row && row.dataset && row.dataset.isPlaceholder === 'true';
+                
+                if (!row) {
+                    showErrorPopup('Table Error', 'Could not find table row. Please try again.');
+                    return;
+                }
+                
+                if (isPlaceholder) {
+                    // For placeholder records, just remove from display and reload
+                    console.log('Deleting placeholder record - no API call needed');
+                    await loadAttendance(dateValue);
+                    return;
+                }
+                
+                // Show loading state
+                button.disabled = true;
+                button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4 text-red-500 animate-spin"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>';
+                
+                // Send delete request with specific record identification
+                const response = await fetch('/api/attendance/delete-specific', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        faculty_id: facultyId,
+                        date: dateValue,
+                        record_index: getRecordIndex(button)
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Show success message with details
+                    const message = result.placeholder_created 
+                        ? `Deleted record - placeholder will be shown`
+                        : `Successfully deleted record`;
+                    
+                    // Reload the table to show updated data
+                    await loadAttendance(dateValue);
+                    
+                    // Show success notification (optional)
+                    console.log(message);
+                } else {
+                    if (response.status === 401) {
+                        // Redirect to login if not authenticated
+                        window.location.href = '/login';
+                        return;
+                    }
+                    showErrorPopup('Delete Failed', result.error);
+                    // Restore original button
+                    button.disabled = false;
+                    button.innerHTML = createDeleteButton(facultyId, dateValue);
+                }
+            } catch (error) {
+                showErrorPopup('Delete Error', `Error deleting record: ${error.message}`);
+                // Restore original button
+                button.disabled = false;
+                button.innerHTML = createDeleteButton(facultyId, dateValue);
+            }
+        }
+
+        function getRecordIndex(button) {
+            // Get the row index within the faculty group
+            const row = button.closest('tr');
+            const facultyId = row.cells[0].textContent;
+            const allRows = Array.from(tableBody.querySelectorAll('tr'));
+            const facultyRows = allRows.filter(r => r.cells[0]?.textContent === facultyId);
+            return facultyRows.indexOf(row);
+        }
+
+        // Initialize everything when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize DOM elements
+            datePicker = document.getElementById('datePicker');
+            selectedDateLabel = document.getElementById('selectedDateLabel');
+            tableBody = document.querySelector('#attendanceTable tbody');
+            refreshBtn = document.getElementById('refreshBtn');
+            exportExcelBtn = document.getElementById('exportExcelBtn');
+            exportPdfBtn = document.getElementById('exportPdfBtn');
+            searchInput = document.getElementById('searchInput');
+            addRecordBtn = document.getElementById('addRecordBtn');
+            addRecordModal = document.getElementById('addRecordModal');
+            modalFacultySelect = document.getElementById('modalFacultySelect');
+            modalCheckinTime = document.getElementById('modalCheckinTime');
+            modalCheckoutTime = document.getElementById('modalCheckoutTime');
+            modalCancelBtn = document.getElementById('modalCancelBtn');
+            modalAddBtn = document.getElementById('modalAddBtn');
+            addRecordForm = document.getElementById('addRecordForm');
+            
+            // Verify critical DOM elements are found
+            if (!tableBody) {
+                console.error('Critical error: tableBody element not found!');
+                return;
+            }
+            if (!datePicker) {
+                console.error('Critical error: datePicker element not found!');
+                return;
+            }
+            
+            // Debug: Check if libraries are loaded
+            console.log('ExcelJS available:', typeof ExcelJS !== 'undefined');
+            console.log('jsPDF available:', typeof window.jspdf !== 'undefined');
+            console.log('Export buttons found:', { exportExcelBtn, exportPdfBtn });
+            
+            // Add export button event listeners
+            if (exportExcelBtn) {
+                console.log('Adding Excel export listener');
+                exportExcelBtn.addEventListener('click', exportTableToExcel);
+            } else {
+                console.error('Export Excel button not found!');
+            }
+            
+            if (exportPdfBtn) {
+                console.log('Adding PDF export listener');
+                exportPdfBtn.addEventListener('click', exportTableToPdf);
+            } else {
+                console.error('Export PDF button not found!');
+            }
+            
+            // Monthly Report functionality
+            const monthlyReportBtn = document.getElementById('monthlyReportBtn');
+            const monthlyReportModal = document.getElementById('monthlyReportModal');
+            const monthlyReportCancelBtn = document.getElementById('monthlyReportCancelBtn');
+            const monthlyReportViewBtn = document.getElementById('monthlyReportViewBtn');
+            const monthlyReportExcelBtn = document.getElementById('monthlyReportExcelBtn');
+            const monthlyReportPdfBtn = document.getElementById('monthlyReportPdfBtn');
+            
+            if (monthlyReportBtn) {
+                monthlyReportBtn.addEventListener('click', () => {
+                    console.log('Monthly Report button clicked');
+                    showMonthlyReportModal();
+                });
+            }
+            
+            if (monthlyReportCancelBtn) {
+                monthlyReportCancelBtn.addEventListener('click', () => {
+                    console.log('Monthly Report Cancel button clicked');
+                    hideMonthlyReportModal();
+                });
+            }
+            
+            if (monthlyReportViewBtn) {
+                monthlyReportViewBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Monthly Report View button clicked');
+                    viewMonthlyReport();
+                });
+            }
+            
+            if (monthlyReportExcelBtn) {
+                monthlyReportExcelBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Monthly Report Excel button clicked');
+                    exportMonthlyReportExcel();
+                });
+            }
+            
+            if (monthlyReportPdfBtn) {
+                monthlyReportPdfBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Monthly Report PDF button clicked');
+                    exportMonthlyReportPdf();
+                });
+            }
+            
+            // Faculty Detailed Report functionality
+            const facultyDetailedReportBtn = document.getElementById('facultyDetailedReportBtn');
+            const facultyDetailedReportModal = document.getElementById('facultyDetailedReportModal');
+            const facultyDetailedReportCancelBtn = document.getElementById('facultyDetailedReportCancelBtn');
+            const facultyDetailedReportViewBtn = document.getElementById('facultyDetailedReportViewBtn');
+            const facultyDetailedReportExcelBtn = document.getElementById('facultyDetailedReportExcelBtn');
+            const facultyDetailedReportPdfBtn = document.getElementById('facultyDetailedReportPdfBtn');
+            
+            if (facultyDetailedReportBtn) {
+                facultyDetailedReportBtn.addEventListener('click', () => {
+                    console.log('Faculty Detailed Report button clicked');
+                    showFacultyDetailedReportModal();
+                });
+            }
+            
+            if (facultyDetailedReportCancelBtn) {
+                facultyDetailedReportCancelBtn.addEventListener('click', () => {
+                    console.log('Faculty Detailed Report Cancel button clicked');
+                    hideFacultyDetailedReportModal();
+                });
+            }
+            
+            if (facultyDetailedReportViewBtn) {
+                facultyDetailedReportViewBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Faculty Detailed Report View button clicked');
+                    viewFacultyDetailedReport();
+                });
+            }
+            
+            if (facultyDetailedReportExcelBtn) {
+                facultyDetailedReportExcelBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Faculty Detailed Report Excel button clicked');
+                    exportFacultyDetailedReportExcel();
+                });
+            }
+            
+            if (facultyDetailedReportPdfBtn) {
+                facultyDetailedReportPdfBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Faculty Detailed Report PDF button clicked');
+                    exportFacultyDetailedReportPdf();
+                });
+            }
+            
+            // Load persisted state on page load
+            loadPersistedState();
+
+            // Load faculty dropdown
+            loadFacultyDropdown();
+
+            // initialize with current date
+            const todayYmd = formatYMD(new Date());
+            datePicker.value = todayYmd;
+            loadAttendance(todayYmd);
+            
+            // Set up event listeners
+            if (datePicker) {
+                datePicker.addEventListener('change', () => {
+                    savedScrollPosition = 0;
+                    // Don't clear search state when date changes
+                    loadAttendance(datePicker.value);
+                });
+            }
+            
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', () => loadAttendance(datePicker.value));
+            }
+            
+            // Add Record button event listener
+            if (addRecordBtn) {
+                addRecordBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    showAddRecordModal();
+                });
+            }
+            
+            if (modalCancelBtn) {
+                modalCancelBtn.addEventListener('click', hideAddRecordModal);
+            }
+            
+            if (addRecordForm) {
+                addRecordForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    addNewRecord();
+                });
+            }
+            
+            // Close modal when clicking outside
+            if (addRecordModal) {
+                addRecordModal.addEventListener('click', (e) => {
+                    if (e.target === addRecordModal) {
+                        hideAddRecordModal();
+                    }
+                });
+            }
+            
+            // Add search input event listener
+            if (searchInput) {
+                searchInput.addEventListener('input', () => {
+                    applyFilter();
+                    saveCurrentState();
+                });
+                
+                // Add Enter key functionality for search
+                searchInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        applyFilter();
+                        saveCurrentState();
+                    }
+                });
+                
+                searchInput.addEventListener('blur', () => {
+                    if (!searchInput.value.trim()) {
+                        savedSearchValue = '';
+                        localStorage.removeItem('attendanceSearchValue');
+                    }
+                });
+            }
+        });
 
         // Real-time client-side filtering
         function applyFilter() {
+            if (!searchInput) {
+                return;
+            }
             const q = (searchInput.value || '').toLowerCase().trim();
-            if (!q) { renderTable(cachedRows); return; }
+            if (!q) { 
+                renderTable(cachedRows); 
+                return; 
+            }
             const filtered = (cachedRows || []).filter(r => {
                 const id = (r.student_id || '').toString().toLowerCase();
                 const name = (r.name || '').toLowerCase();
-                // Exclude check-in/check-out from matching per request
                 return id.includes(q) || name.includes(q);
             });
             renderTable(filtered);
         }
-        if (searchInput) searchInput.addEventListener('input', applyFilter);
 
 
 
         function exportTableToExcel() {
-            const table = document.getElementById('attendanceTable');
-            const workbook = new ExcelJS.Workbook();
+            console.log('Excel export function called');
+            try {
+                const table = document.getElementById('attendanceTable');
+                if (!table) {
+                    showErrorPopup('Table Error', 'Could not find attendance table. Please refresh the page and try again.');
+                    return;
+                }
+                const workbook = new ExcelJS.Workbook();
             const sheet = workbook.addWorksheet('Attendance');
 
-            // Read headers
-            const headerCells = Array.from(table.querySelectorAll('thead th')).map(th => th.innerText.trim());
+            // Read headers (excluding Actions column)
+            const allHeaders = Array.from(table.querySelectorAll('thead th')).map(th => th.innerText.trim());
+            const headerCells = allHeaders.filter(header => header !== 'Actions');
             const numCols = headerCells.length;
 
             // Title row (centered across all columns)
@@ -357,20 +1864,69 @@
             dateRow.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
             dateRow.height = 18;
 
-            // Header row (black background, bold white text)
+            // Header row (black background, bold white text) - ONLY for first 5 columns (A-E)
             sheet.addRow(headerCells);
             const headerRow = sheet.getRow(3);
-            headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-            headerRow.alignment = { vertical: 'middle', horizontal: 'left' };
-            headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF000000' } }; // black
             headerRow.height = 22;
+            
+            // Apply black background and white text ONLY to columns 1-5 (A-E)
+            for (let col = 1; col <= 5; col++) {
+                const cell = headerRow.getCell(col);
+                cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+                cell.alignment = { vertical: 'middle', horizontal: 'left' };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF000000' } }; // black
+            }
+            
+            // Ensure columns 6+ (F onwards) have white background and default styling
+            for (let col = 6; col <= numCols; col++) {
+                const cell = headerRow.getCell(col);
+                cell.font = { bold: true, color: { argb: 'FF000000' } }; // black text
+                cell.alignment = { vertical: 'middle', horizontal: 'left' };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } }; // white background
+            }
 
-            // Add body rows
+            // Add body rows with merged delay cells for same faculty
             const bodyRows = Array.from(table.querySelectorAll('tbody tr'));
-            bodyRows.forEach(tr => {
-                const cells = Array.from(tr.querySelectorAll('td')).map(td => td.innerText.trim());
-                sheet.addRow(cells);
+            let currentFacultyId = '';
+            let facultyStartRow = 0;
+            let facultyDelayValue = '';
+            
+            bodyRows.forEach((tr, index) => {
+                const allCells = Array.from(tr.querySelectorAll('td')).map(td => td.innerText.trim());
+                // Exclude the last column (Actions)
+                const cells = allCells.slice(0, -1);
+                const facultyId = cells[0]; // First column is Faculty ID
+                const delayValue = cells[4]; // Fifth column is Delay
+                
+                // Add row to sheet
+                const rowNumber = sheet.addRow(cells).number;
+                
+                // Handle delay cell merging for same faculty
+                if (facultyId !== currentFacultyId) {
+                    // New faculty - merge previous faculty's delay cells if needed
+                    if (currentFacultyId && facultyStartRow < rowNumber - 1) {
+                        const delayCol = 5; // Delay is column 5 (E)
+                        sheet.mergeCells(facultyStartRow, delayCol, rowNumber - 1, delayCol);
+                        // Center the delay value
+                        const delayCell = sheet.getCell(facultyStartRow, delayCol);
+                        delayCell.alignment = { horizontal: 'center', vertical: 'middle' };
+                    }
+                    
+                    // Start tracking new faculty
+                    currentFacultyId = facultyId;
+                    facultyStartRow = rowNumber;
+                    facultyDelayValue = delayValue;
+                }
             });
+            
+            // Merge delay cells for the last faculty group
+            if (currentFacultyId && facultyStartRow < sheet.rowCount) {
+                const delayCol = 5; // Delay is column 5 (E)
+                sheet.mergeCells(facultyStartRow, delayCol, sheet.rowCount, delayCol);
+                // Center the delay value
+                const delayCell = sheet.getCell(facultyStartRow, delayCol);
+                delayCell.alignment = { horizontal: 'center', vertical: 'middle' };
+            }
 
             // Add thin borders and wrap text for all cells to retain readable GUI-like format
             sheet.eachRow(row => {
@@ -410,108 +1966,895 @@
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
             });
-        }
-
-        async function exportTableToPdf() {
-            try {
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
-
-                // Sanitize helper to avoid PDF header garbling
-                const sanitize = (text) => {
-                    if (!text) return '';
-                    return text
-                        .replace(/[\u200B-\u200D\uFEFF]/g, '')
-                        .replace(/[\u2010\u2011\u2012\u2013\u2014\u2212]/g, '-')
-                        .replace(/\s+/g, ' ')
-                        .trim();
-                };
-
-                const logoUrl = "{{ url_for('static', filename='images/logo-removebg-preview.png') }}";
-                async function loadImageAsDataUrl(url) {
-                    try {
-                        const res = await fetch(url);
-                        const blob = await res.blob();
-                        return await new Promise((resolve) => {
-                            const reader = new FileReader();
-                            reader.onload = () => resolve(reader.result);
-                            reader.readAsDataURL(blob);
-                        });
-                    } catch (e) { return null; }
-                }
-
-                // Header layout
-                const marginX = 40;
-                const topY = 40;
-                let currentY = topY;
-                const logoDataUrl = await loadImageAsDataUrl(logoUrl);
-                const logoHeight = 48;
-                let logoWidth = 72; // fallback conservative width
-                if (logoDataUrl) {
-                    try {
-                        // Compute width preserving aspect
-                        await new Promise((resolve) => {
-                            const img = new Image();
-                            img.onload = () => {
-                                const ratio = img.naturalWidth / img.naturalHeight || 1.5;
-                                logoWidth = Math.round(logoHeight * ratio);
-                                resolve();
-                            };
-                            img.src = logoDataUrl;
-                        });
-                        doc.addImage(logoDataUrl, 'PNG', marginX, currentY, logoWidth, logoHeight);
-                    } catch (_) { /* ignore logo rendering errors */ }
-                }
-                const textX = marginX + logoWidth + 16;
-                doc.setFontSize(18);
-                doc.setFont(undefined, 'bold');
-                doc.text('Dr. B. B. Hegde First Grade College, Kundapura', textX, currentY + 22);
-                doc.setFontSize(11);
-                doc.setFont(undefined, 'normal');
-                doc.text('A Unit of Coondapur Education Society (R)', textX, currentY + 40);
-
-                // Divider line
-                doc.setDrawColor(203, 213, 225);
-                doc.setLineWidth(1);
-                doc.line(marginX, currentY + logoHeight + 12, doc.internal.pageSize.getWidth() - marginX, currentY + logoHeight + 12);
-
-                // Section title and date
-                const sectionY = currentY + logoHeight + 36;
-                doc.setFontSize(14);
-                doc.setFont(undefined, 'bold');
-                doc.text('Faculty Attendance', marginX, sectionY);
-                doc.setFontSize(11);
-                doc.setFont(undefined, 'normal');
-                const parts = (datePicker.value || '').split('-');
-                const prettyDate = parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : datePicker.value;
-                doc.text(`Date: ${prettyDate}`, marginX, sectionY + 18);
-
-                // Table
-                const table = document.getElementById('attendanceTable');
-                const head = [Array.from(table.querySelectorAll('thead th')).map(th => sanitize(th.innerText))];
-                const body = Array.from(table.querySelectorAll('tbody tr')).map(tr => Array.from(tr.querySelectorAll('td')).map(td => sanitize(td.innerText) || ''));
-                doc.autoTable({
-                    head,
-                    body,
-                    startY: sectionY + 30,
-                    theme: 'grid',
-                    styles: { fontSize: 9, cellPadding: 3, overflow: 'linebreak', lineColor: [0,0,0], lineWidth: 0.5 },
-                    // Make header grid lines visible with white vertical separators on black background
-                    headStyles: { fillColor: [0, 0, 0], textColor: 255, halign: 'left', lineColor: [255,255,255], lineWidth: 1 },
-                    tableWidth: 'auto',
-                    columnStyles: {},
-                });
-
-                doc.save(`attendance_${datePicker.value}.pdf`);
-            } catch (e) {
-                alert('Failed to generate PDF. Please try again.');
-                console.error('PDF export error:', e);
+            } catch (error) {
+                console.error('Excel export error:', error);
+                showErrorPopup('Excel Export Error', 'Error exporting to Excel: ' + error.message);
             }
         }
 
-        if (exportExcelBtn) exportExcelBtn.addEventListener('click', exportTableToExcel);
-        if (exportPdfBtn) exportPdfBtn.addEventListener('click', exportTableToPdf);
+        async function exportTableToPdf() {
+            console.log('=== PDF EXPORT DEBUG START ===');
+            console.log('PDF export function called');
+            
+            const datePicker = document.getElementById('datePicker');
+            
+            if (!datePicker.value) {
+                showErrorPopup('Missing Date', 'Please select a date before exporting to PDF.');
+                return;
+            }
+            
+            try {
+                console.log('Starting PDF export for date:', datePicker.value);
+                
+                // Use server-side PDF generation instead of client-side jsPDF
+                const response = await fetch(`/api/daily-attendance-report/pdf?date=${datePicker.value}`);
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `daily_attendance_report_${datePicker.value}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    console.log('PDF exported successfully');
+                } else {
+                    const errorData = await response.json();
+                    showErrorPopup('PDF Export Failed', errorData.error || 'Failed to export PDF report. Please try again.');
+                }
+                
+            } catch (e) {
+                console.error('PDF export error:', e);
+                showErrorPopup('Export Error', 'Failed to export PDF. Please try again.');
+            }
+            
+            console.log('=== PDF EXPORT DEBUG END ===');
+        }
+
+        // Error Popup Functions
+        function showErrorPopup(title, message) {
+            const popup = document.getElementById('errorPopup');
+            const titleElement = document.getElementById('errorTitle');
+            const messageElement = document.getElementById('errorMessage');
+            
+            if (popup && titleElement && messageElement) {
+                titleElement.textContent = title;
+                messageElement.textContent = message;
+                popup.classList.remove('hidden');
+            }
+        }
+        
+        function hideErrorPopup() {
+            const popup = document.getElementById('errorPopup');
+            if (popup) {
+                popup.classList.add('hidden');
+            }
+        }
+        
+        // Custom Confirmation Popup Functions
+        let confirmCallback = null;
+        let popupVisible = false;
+        
+        function showConfirmPopup(title, message, callback) {
+            console.log('showConfirmPopup called with:', title, message);
+            console.log('showConfirmPopup callback:', callback);
+            
+            // Stop any existing timeouts or intervals
+            if (window.confirmTimeout) {
+                clearTimeout(window.confirmTimeout);
+                window.confirmTimeout = null;
+            }
+            
+            const popup = document.getElementById('confirmPopup');
+            const titleElement = document.getElementById('confirmTitle');
+            const messageElement = document.getElementById('confirmMessage');
+            
+            console.log('Popup elements found:', {
+                popup: !!popup,
+                titleElement: !!titleElement,
+                messageElement: !!messageElement
+            });
+            
+            if (!popup || !titleElement || !messageElement) {
+                console.error('Confirmation popup elements not found');
+                console.error('Popup:', popup);
+                console.error('Title element:', titleElement);
+                console.error('Message element:', messageElement);
+                    return;
+                }
+                
+            // Set the content
+            titleElement.textContent = title;
+            messageElement.textContent = message;
+            confirmCallback = callback;
+            popupVisible = true;
+            
+            // Remove all existing event listeners
+            const newPopup = popup.cloneNode(true);
+            popup.parentNode.replaceChild(newPopup, popup);
+            
+            // Re-get the popup element after replacement
+            const freshPopup = document.getElementById('confirmPopup');
+            
+            // Add event listeners to the fresh popup
+            freshPopup.addEventListener('click', function(e) {
+                console.log('Fresh popup clicked, target:', e.target);
+                if (e.target === freshPopup) {
+                    console.log('Clicked on popup background - preventing close');
+                    e.stopPropagation();
+                    e.preventDefault();
+                }
+            });
+            
+            // Show the popup with a small delay to ensure proper rendering
+            setTimeout(() => {
+                freshPopup.classList.remove('hidden');
+                freshPopup.style.display = 'flex';
+                freshPopup.style.visibility = 'visible';
+                freshPopup.style.opacity = '1';
+                freshPopup.style.zIndex = '99999';
+                
+                console.log('Confirmation popup shown:', title, message);
+            }, 50);
+            
+            // Check if popup is still visible after delays
+            window.confirmTimeout = setTimeout(() => {
+                if (freshPopup.classList.contains('hidden') || !popupVisible) {
+                    console.error('Popup was hidden unexpectedly after 100ms!');
+                } else {
+                    console.log('Popup is still visible after 100ms');
+                }
+            }, 100);
+            
+            window.confirmTimeout2 = setTimeout(() => {
+                if (freshPopup.classList.contains('hidden') || !popupVisible) {
+                    console.error('Popup was hidden unexpectedly after 500ms!');
+                } else {
+                    console.log('Popup is still visible after 500ms');
+                }
+            }, 500);
+        }
+        
+        function hideConfirmPopup() {
+            console.log('hideConfirmPopup called, popupVisible:', popupVisible);
+            popupVisible = false;
+            
+            // Clear timeouts
+            if (window.confirmTimeout) {
+                clearTimeout(window.confirmTimeout);
+                window.confirmTimeout = null;
+            }
+            if (window.confirmTimeout2) {
+                clearTimeout(window.confirmTimeout2);
+                window.confirmTimeout2 = null;
+            }
+            
+            const popup = document.getElementById('confirmPopup');
+            if (popup) {
+                popup.classList.add('hidden');
+                popup.style.display = 'none';
+                popup.style.visibility = 'hidden';
+                popup.style.opacity = '0';
+                confirmCallback = null;
+                console.log('Confirmation popup hidden');
+            }
+        }
+        
+        function confirmAction() {
+            console.log('confirmAction called, popupVisible:', popupVisible);
+            if (confirmCallback && popupVisible) {
+                console.log('Executing confirm callback');
+                confirmCallback();
+            } else {
+                console.log('No confirm callback set or popup not visible');
+            }
+            hideConfirmPopup();
+        }
+        
+        // Check if month is complete
+        function isMonthComplete(month, year) {
+            const now = new Date();
+            const currentMonth = now.getMonth() + 1;
+            const currentYear = now.getFullYear();
+            
+            console.log('isMonthComplete check:', {
+                selectedMonth: month,
+                selectedYear: year,
+                currentMonth: currentMonth,
+                currentYear: currentYear,
+                isComplete: parseInt(month) < currentMonth || parseInt(year) < currentYear
+            });
+            
+            // Month is complete if it's before the current month, or if it's a different year
+            return parseInt(month) < currentMonth || parseInt(year) < currentYear;
+        }
+        
+        // Monthly Report Functions
+        function showMonthlyReportModal() {
+            console.log('=== showMonthlyReportModal called ===');
+            const modal = document.getElementById('monthlyReportModal');
+            if (modal) {
+                console.log('Monthly report modal found, showing it');
+                modal.classList.remove('hidden');
+                // Set current month and year as default
+                const now = new Date();
+                const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+                const currentYear = now.getFullYear();
+                
+                console.log('Setting default month/year:', { currentMonth, currentYear });
+                
+                const monthSelect = document.getElementById('reportMonth');
+                const yearSelect = document.getElementById('reportYear');
+                
+                if (monthSelect) {
+                    monthSelect.value = currentMonth;
+                    console.log('Month select value set to:', monthSelect.value);
+                }
+                if (yearSelect) {
+                    yearSelect.value = currentYear;
+                    console.log('Year select value set to:', yearSelect.value);
+                }
+            } else {
+                console.error('Monthly report modal not found!');
+            }
+        }
+
+        function hideMonthlyReportModal() {
+            const modal = document.getElementById('monthlyReportModal');
+            const confirmPopup = document.getElementById('confirmPopup');
+            
+            // Don't hide the monthly report modal if confirmation popup is visible
+            if (confirmPopup && !confirmPopup.classList.contains('hidden') && popupVisible) {
+                console.log('Confirmation popup is visible, not hiding monthly report modal');
+                    return;
+                }
+                
+            if (modal) {
+                modal.classList.add('hidden');
+            }
+        }
+
+        async function viewMonthlyReport() {
+            console.log('=== viewMonthlyReport called ===');
+            const month = document.getElementById('reportMonth').value;
+            const year = document.getElementById('reportYear').value;
+            
+            console.log('Selected month/year:', { month, year });
+            
+            if (!month || !year) {
+                console.log('Missing month or year, showing error popup');
+                showErrorPopup('Missing Information', 'Please select both month and year.');
+                    return;
+                }
+                
+            // Check if month is not complete and ask for confirmation
+            const isComplete = isMonthComplete(month, year);
+            console.log('Month completeness check result:', isComplete);
+            
+            if (!isComplete) {
+                console.log('Month is incomplete, showing confirmation popup');
+                const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                                  'July', 'August', 'September', 'October', 'November', 'December'];
+                const monthName = monthNames[parseInt(month) - 1];
+                
+                // Store the month and year for later use
+                window.pendingReportMonth = month;
+                window.pendingReportYear = year;
+                window.pendingReportType = 'view';
+                
+                console.log('About to call showConfirmPopup');
+                showConfirmPopup(
+                    'Incomplete Month',
+                    `The month ${monthName} ${year} is not yet complete. Do you still want to generate the report for the available data?`,
+                    () => {
+                        console.log('User confirmed incomplete month report');
+                        // User confirmed, proceed with report generation
+                        generateViewReport(window.pendingReportMonth, window.pendingReportYear);
+                        // Clear the stored values
+                        window.pendingReportMonth = null;
+                        window.pendingReportYear = null;
+                        window.pendingReportType = null;
+                    }
+                );
+                console.log('Confirmation popup shown, returning from viewMonthlyReport');
+                return;
+            }
+            
+            // Month is complete, proceed directly
+            console.log('Month is complete, proceeding directly');
+            generateViewReport(month, year);
+        }
+        
+        async function generateViewReport(month, year) {
+            try {
+                const response = await fetch(`/api/monthly-delay-report?month=${month}&year=${year}`);
+                if (response.ok) {
+                    const reportData = await response.json();
+                    if (reportData.success) {
+                        displayMonthlyReport(reportData.data, month, year);
+                    } else {
+                        showErrorPopup('Report Generation Failed', reportData.error || 'Failed to generate report. Please try again.');
+                    }
+                    hideMonthlyReportModal();
+                } else {
+                    const errorData = await response.json();
+                    showErrorPopup('Report Generation Failed', errorData.error || 'Failed to generate report. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error generating monthly report:', error);
+                showErrorPopup('Network Error', 'Error generating report. Please check your connection and try again.');
+            }
+        }
+
+        function displayMonthlyReport(data, month, year) {
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                              'July', 'August', 'September', 'October', 'November', 'December'];
+            const monthName = monthNames[parseInt(month) - 1];
+            
+            // Create a new window for the report
+            const reportWindow = window.open('', '_blank', 'width=1200,height=800');
+            
+            // Build HTML content step by step to avoid template literal issues
+            let htmlContent = '<!DOCTYPE html><html lang="en"><head>';
+            htmlContent += '<meta charset="UTF-8">';
+            htmlContent += '<meta name="viewport" content="width=device-width, initial-scale=1.0">';
+            htmlContent += '<title>Monthly Delay Report - ' + monthName + ' ' + year + '</title>';
+            htmlContent += '<script src="https://cdn.tailwindcss.com"><\/script>';
+            htmlContent += '</head><body class="bg-gray-50 p-8">';
+            htmlContent += '<div class="max-w-6xl mx-auto">';
+            htmlContent += '<div class="bg-white rounded-lg shadow-lg p-8">';
+            
+            // College header with logo (same as PDF)
+            htmlContent += '<div class="flex items-start mb-8">';
+            htmlContent += '<div class="flex-shrink-0 mr-4 mt-2">';
+            htmlContent += '<img src="' + window.location.origin + '/static/images/logo-removebg-preview.png" alt="College Logo" class="w-24 h-18 object-contain" onerror="this.style.display=\'none\'">';
+            htmlContent += '</div>';
+            htmlContent += '<div class="flex-1">';
+            htmlContent += '<h1 class="text-2xl font-bold text-gray-900 mb-1">Dr. B. B. Hegde First Grade College, Kundapura</h1>';
+            htmlContent += '<p class="text-sm text-gray-600 mb-4">A Unit of Coondapur Education Society (R)</p>';
+            htmlContent += '<hr class="border-gray-300 mb-6">';
+            htmlContent += '<h2 class="text-xl font-bold text-gray-900 mb-2">Monthly Delay Report</h2>';
+            htmlContent += '<h3 class="text-lg text-gray-600">Month: ' + monthName + ' ' + year + '</h3>';
+            htmlContent += '</div>';
+            htmlContent += '</div>';
+            htmlContent += '<div class="overflow-x-auto">';
+            htmlContent += '<table class="min-w-full border border-gray-300">';
+            htmlContent += '<thead class="bg-black">';
+            htmlContent += '<tr>';
+            htmlContent += '<th class="px-4 py-3 text-left text-xs font-bold text-white uppercase tracking-wider border border-gray-300">Faculty ID</th>';
+            htmlContent += '<th class="px-4 py-3 text-left text-xs font-bold text-white uppercase tracking-wider border border-gray-300">Faculty Name</th>';
+            htmlContent += '<th class="px-4 py-3 text-left text-xs font-bold text-white uppercase tracking-wider border border-gray-300">Total Delay</th>';
+            htmlContent += '</tr>';
+            htmlContent += '</thead>';
+            htmlContent += '<tbody class="bg-white">';
+            
+            // Add data rows
+            if (data && data.length > 0) {
+                data.forEach(function(faculty) {
+                    htmlContent += '<tr class="border-b border-gray-300">';
+                    htmlContent += '<td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border border-gray-300">' + faculty.faculty_id + '</td>';
+                    htmlContent += '<td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 border border-gray-300">' + faculty.name + '</td>';
+                    const delayClass = faculty.total_delay === '00:00:00' ? 'text-green-600 font-semibold' : 'text-gray-900';
+                    const delayText = faculty.total_delay === '00:00:00' ? 'No Delay' : faculty.total_delay;
+                    htmlContent += '<td class="px-4 py-3 whitespace-nowrap text-sm ' + delayClass + ' border border-gray-300">' + delayText + '</td>';
+                    htmlContent += '</tr>';
+                });
+            } else {
+                htmlContent += '<tr class="border-b border-gray-300"><td colspan="3" class="px-4 py-3 text-center text-gray-500 border border-gray-300">No data available for this month</td></tr>';
+            }
+            
+            htmlContent += '</tbody>';
+            htmlContent += '</table>';
+            htmlContent += '</div>';
+            htmlContent += '</div>';
+            htmlContent += '</div>';
+            htmlContent += '</body></html>';
+            
+            reportWindow.document.write(htmlContent);
+            reportWindow.document.close();
+        }
+
+        async function exportMonthlyReportExcel() {
+            console.log('exportMonthlyReportExcel called');
+            const month = document.getElementById('reportMonth').value;
+            const year = document.getElementById('reportYear').value;
+            
+            if (!month || !year) {
+                showErrorPopup('Missing Information', 'Please select both month and year.');
+                return;
+            }
+            
+            // Check if month is not complete and ask for confirmation
+            if (!isMonthComplete(month, year)) {
+                console.log('Month is incomplete, showing confirmation popup for Excel');
+                const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                                  'July', 'August', 'September', 'October', 'November', 'December'];
+                const monthName = monthNames[parseInt(month) - 1];
+                
+                // Store the month and year for later use
+                window.pendingReportMonth = month;
+                window.pendingReportYear = year;
+                window.pendingReportType = 'excel';
+                
+                showConfirmPopup(
+                    'Incomplete Month',
+                    `The month ${monthName} ${year} is not yet complete. Do you still want to generate the report for the available data?`,
+                    () => {
+                        console.log('User confirmed incomplete month Excel export');
+                        // User confirmed, proceed with Excel export
+                        generateExcelReport(window.pendingReportMonth, window.pendingReportYear);
+                        // Clear the stored values
+                        window.pendingReportMonth = null;
+                        window.pendingReportYear = null;
+                        window.pendingReportType = null;
+                    }
+                );
+                console.log('Confirmation popup shown for Excel, returning from exportMonthlyReportExcel');
+                return;
+            }
+            
+            // Month is complete, proceed directly
+            console.log('Month is complete, proceeding directly with Excel');
+            generateExcelReport(month, year);
+        }
+        
+        async function generateExcelReport(month, year) {
+            try {
+                const response = await fetch(`/api/monthly-delay-report/excel?month=${month}&year=${year}`);
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `monthly_delay_report_${year}_${month}.xlsx`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    hideMonthlyReportModal();
+                } else {
+                    const errorData = await response.json();
+                    showErrorPopup('Excel Export Failed', errorData.error || 'Failed to export Excel report. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error exporting Excel report:', error);
+                showErrorPopup('Network Error', 'Error exporting Excel report. Please check your connection and try again.');
+            }
+        }
+
+        async function exportMonthlyReportPdf() {
+            console.log('exportMonthlyReportPdf called');
+            const month = document.getElementById('reportMonth').value;
+            const year = document.getElementById('reportYear').value;
+            
+            if (!month || !year) {
+                showErrorPopup('Missing Information', 'Please select both month and year.');
+                return;
+            }
+            
+            // Check if month is not complete and ask for confirmation
+            if (!isMonthComplete(month, year)) {
+                console.log('Month is incomplete, showing confirmation popup for PDF');
+                const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                                  'July', 'August', 'September', 'October', 'November', 'December'];
+                const monthName = monthNames[parseInt(month) - 1];
+                
+                // Store the month and year for later use
+                window.pendingReportMonth = month;
+                window.pendingReportYear = year;
+                window.pendingReportType = 'pdf';
+                
+                showConfirmPopup(
+                    'Incomplete Month',
+                    `The month ${monthName} ${year} is not yet complete. Do you still want to generate the report for the available data?`,
+                    () => {
+                        console.log('User confirmed incomplete month PDF export');
+                        // User confirmed, proceed with PDF export
+                        generatePdfReport(window.pendingReportMonth, window.pendingReportYear);
+                        // Clear the stored values
+                        window.pendingReportMonth = null;
+                        window.pendingReportYear = null;
+                        window.pendingReportType = null;
+                    }
+                );
+                console.log('Confirmation popup shown for PDF, returning from exportMonthlyReportPdf');
+                return;
+            }
+            
+            // Month is complete, proceed directly
+            console.log('Month is complete, proceeding directly with PDF');
+            generatePdfReport(month, year);
+        }
+        
+        async function generatePdfReport(month, year) {
+            try {
+                const response = await fetch(`/api/monthly-delay-report/pdf?month=${month}&year=${year}`);
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `monthly_delay_report_${year}_${month}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    hideMonthlyReportModal();
+                } else {
+                    const errorData = await response.json();
+                    showErrorPopup('PDF Export Failed', errorData.error || 'Failed to export PDF report. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error exporting PDF report:', error);
+                showErrorPopup('Network Error', 'Error exporting PDF report. Please check your connection and try again.');
+            }
+        }
+        
+        // Faculty Detailed Report Functions
+        function showFacultyDetailedReportModal() {
+            console.log('=== showFacultyDetailedReportModal called ===');
+            const modal = document.getElementById('facultyDetailedReportModal');
+            if (modal) {
+                console.log('Faculty detailed report modal found, showing it');
+                modal.classList.remove('hidden');
+                // Set current month and year as default
+                const now = new Date();
+                const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+                const currentYear = now.getFullYear();
+                
+                document.getElementById('facultyReportMonth').value = currentMonth;
+                document.getElementById('facultyReportYear').value = currentYear;
+                
+                // Load faculty dropdown
+                loadFacultyDetailedReportDropdown();
+            } else {
+                console.error('Faculty detailed report modal not found');
+            }
+        }
+        
+        function hideFacultyDetailedReportModal() {
+            console.log('=== hideFacultyDetailedReportModal called ===');
+            const modal = document.getElementById('facultyDetailedReportModal');
+            if (modal) {
+                modal.classList.add('hidden');
+            }
+        }
+        
+        async function loadFacultyDetailedReportDropdown() {
+            try {
+                const response = await fetch('/api/faculty-list');
+                if (response.ok) {
+                    const facultyList = await response.json();
+                    const facultySelect = document.getElementById('facultyReportFaculty');
+                    
+                    // Clear existing options except the first two
+                    facultySelect.innerHTML = '<option value="">Select Faculty</option><option value="all">All Faculty</option>';
+                    
+                    // Add faculty options
+                    facultyList.forEach(faculty => {
+                        const option = document.createElement('option');
+                        option.value = faculty.id;
+                        option.textContent = `${faculty.id} - ${faculty.name}`;
+                        facultySelect.appendChild(option);
+                    });
+                } else {
+                    console.error('Failed to load faculty list');
+                }
+            } catch (error) {
+                console.error('Error loading faculty list:', error);
+            }
+        }
+        
+        function viewFacultyDetailedReport() {
+            console.log('viewFacultyDetailedReport called');
+            const month = document.getElementById('facultyReportMonth').value;
+            const year = document.getElementById('facultyReportYear').value;
+            const faculty = document.getElementById('facultyReportFaculty').value;
+            
+            if (!month || !year || !faculty) {
+                showErrorPopup('Missing Information', 'Please select month, year, and faculty.');
+                return;
+            }
+            
+            console.log('Opening faculty detailed report in new window');
+            const url = `/faculty-detailed-report?month=${month}&year=${year}&faculty=${faculty}`;
+            window.open(url, '_blank');
+        }
+        
+        async function exportFacultyDetailedReportExcel() {
+            console.log('exportFacultyDetailedReportExcel called');
+            const month = document.getElementById('facultyReportMonth').value;
+            const year = document.getElementById('facultyReportYear').value;
+            const faculty = document.getElementById('facultyReportFaculty').value;
+            
+            if (!month || !year || !faculty) {
+                showErrorPopup('Missing Information', 'Please select month, year, and faculty.');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/faculty-detailed-report/excel?month=${month}&year=${year}&faculty=${faculty}`);
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `faculty_detailed_report_${faculty}_${year}_${month}.xlsx`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    hideFacultyDetailedReportModal();
+                } else {
+                    const errorData = await response.json();
+                    showErrorPopup('Excel Export Failed', errorData.error || 'Failed to export Excel report. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error exporting Excel report:', error);
+                showErrorPopup('Network Error', 'Error exporting Excel report. Please check your connection and try again.');
+            }
+        }
+        
+        async function exportFacultyDetailedReportPdf() {
+            console.log('exportFacultyDetailedReportPdf called');
+            const month = document.getElementById('facultyReportMonth').value;
+            const year = document.getElementById('facultyReportYear').value;
+            const faculty = document.getElementById('facultyReportFaculty').value;
+            
+            if (!month || !year || !faculty) {
+                showErrorPopup('Missing Information', 'Please select month, year, and faculty.');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/faculty-detailed-report/pdf?month=${month}&year=${year}&faculty=${faculty}`);
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `faculty_detailed_report_${faculty}_${year}_${month}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    hideFacultyDetailedReportModal();
+                } else {
+                    const errorData = await response.json();
+                    showErrorPopup('PDF Export Failed', errorData.error || 'Failed to export PDF report. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error exporting PDF report:', error);
+                showErrorPopup('Network Error', 'Error exporting PDF report. Please check your connection and try again.');
+            }
+        }
+
     </script>
+
+    <!-- Add Record Modal -->
+    <div id="addRecordModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div class="flex items-center mb-4">
+                <div class="flex-shrink-0">
+                    <svg class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.5v15m7.5-7.5h-15" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-lg font-medium text-gray-900">Add Attendance Record</h3>
+                </div>
+            </div>
+            
+            <form id="addRecordForm">
+                <div class="mb-4">
+                    <label for="modalFacultySelect" class="block text-sm font-medium text-gray-700 mb-2">
+                        Faculty Member <span class="text-red-500">*</span>
+                    </label>
+                    <select id="modalFacultySelect" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600">
+                        <option value="">Select Faculty Member</option>
+                    </select>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="modalCheckinTime" class="block text-sm font-medium text-gray-700 mb-2">
+                        Check-in Time
+                    </label>
+                    <input type="time" id="modalCheckinTime" step="1" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600">
+                </div>
+                
+                <div class="mb-6">
+                    <label for="modalCheckoutTime" class="block text-sm font-medium text-gray-700 mb-2">
+                        Check-out Time
+                    </label>
+                    <input type="time" id="modalCheckoutTime" step="1" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600">
+                </div>
+                
+                <div class="flex justify-end space-x-3">
+                    <button type="button" id="modalCancelBtn" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md">
+                        Cancel
+                    </button>
+                    <button type="submit" id="modalAddBtn" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md">
+                        Add Record
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Monthly Report Modal -->
+    <div id="monthlyReportModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div class="flex items-center mb-4">
+                <div class="flex-shrink-0">
+                    <svg class="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-lg font-medium text-gray-900">Monthly Delay Report</h3>
+                </div>
+            </div>
+            
+            <form id="monthlyReportForm" onsubmit="return false;">
+                <div class="mb-4">
+                    <label for="reportMonth" class="block text-sm font-medium text-gray-700 mb-2">
+                        Month <span class="text-red-500">*</span>
+                    </label>
+                    <select id="reportMonth" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-purple-600">
+                        <option value="">Select Month</option>
+                        <option value="01">January</option>
+                        <option value="02">February</option>
+                        <option value="03">March</option>
+                        <option value="04">April</option>
+                        <option value="05">May</option>
+                        <option value="06">June</option>
+                        <option value="07">July</option>
+                        <option value="08">August</option>
+                        <option value="09">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                    </select>
+                </div>
+                
+                <div class="mb-6">
+                    <label for="reportYear" class="block text-sm font-medium text-gray-700 mb-2">
+                        Year <span class="text-red-500">*</span>
+                    </label>
+                    <select id="reportYear" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-purple-600">
+                        <option value="">Select Year</option>
+                        <option value="2024">2024</option>
+                        <option value="2025">2025</option>
+                        <option value="2026">2026</option>
+                    </select>
+                </div>
+                
+                <div class="flex justify-end space-x-3">
+                    <button type="button" id="monthlyReportCancelBtn" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md">
+                        Cancel
+                    </button>
+                    <button type="button" id="monthlyReportViewBtn" class="px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-md">
+                        View Report
+                    </button>
+                    <button type="button" id="monthlyReportExcelBtn" class="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md">
+                        Download Excel
+                    </button>
+                    <button type="button" id="monthlyReportPdfBtn" class="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md">
+                        Download PDF
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Faculty Detailed Report Modal -->
+    <div id="facultyDetailedReportModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg p-6 max-w-lg w-full mx-4">
+            <div class="flex items-center mb-4">
+                <div class="flex-shrink-0">
+                    <svg class="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-lg font-medium text-gray-900">Faculty Detailed Report</h3>
+                </div>
+            </div>
+            
+            <form id="facultyDetailedReportForm" onsubmit="return false;">
+                <div class="mb-4">
+                    <label for="facultyReportMonth" class="block text-sm font-medium text-gray-700 mb-2">
+                        Month <span class="text-red-500">*</span>
+                    </label>
+                    <select id="facultyReportMonth" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600">
+                        <option value="">Select Month</option>
+                        <option value="01">January</option>
+                        <option value="02">February</option>
+                        <option value="03">March</option>
+                        <option value="04">April</option>
+                        <option value="05">May</option>
+                        <option value="06">June</option>
+                        <option value="07">July</option>
+                        <option value="08">August</option>
+                        <option value="09">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                    </select>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="facultyReportYear" class="block text-sm font-medium text-gray-700 mb-2">
+                        Year <span class="text-red-500">*</span>
+                    </label>
+                    <select id="facultyReportYear" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600">
+                        <option value="">Select Year</option>
+                        <option value="2024">2024</option>
+                        <option value="2025">2025</option>
+                        <option value="2026">2026</option>
+                    </select>
+                </div>
+                
+                <div class="mb-6">
+                    <label for="facultyReportFaculty" class="block text-sm font-medium text-gray-700 mb-2">
+                        Faculty <span class="text-red-500">*</span>
+                    </label>
+                    <select id="facultyReportFaculty" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600">
+                        <option value="">Select Faculty</option>
+                        <option value="all">All Faculty</option>
+                        <!-- Faculty options will be populated by JavaScript -->
+                    </select>
+                </div>
+                
+                <div class="flex justify-end space-x-3">
+                    <button type="button" id="facultyDetailedReportCancelBtn" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md">
+                        Cancel
+                    </button>
+                    <button type="button" id="facultyDetailedReportViewBtn" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md">
+                        View Report
+                    </button>
+                    <button type="button" id="facultyDetailedReportExcelBtn" class="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md">
+                        Export Excel
+                    </button>
+                    <button type="button" id="facultyDetailedReportPdfBtn" class="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md">
+                        Export PDF
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Custom Error Popup -->
+    <div id="errorPopup" class="error-popup hidden">
+        <div class="error-popup-content">
+            <div class="error-icon">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </div>
+            <div class="error-title" id="errorTitle">Error</div>
+            <div class="error-message" id="errorMessage">An error occurred. Please try again.</div>
+            <button class="error-button" onclick="hideErrorPopup()">OK</button>
+        </div>
+    </div>
+    
+    <!-- Custom Confirmation Popup -->
+    <div id="confirmPopup" class="error-popup hidden" onclick="event.stopPropagation()">
+        <div class="error-popup-content" onclick="event.stopPropagation()">
+            <div class="error-icon" style="background: #3b82f6;">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
+            <div class="error-title" id="confirmTitle">Confirm Action</div>
+            <div class="error-message" id="confirmMessage">Are you sure you want to proceed?</div>
+            <div style="display: flex; gap: 12px; justify-content: center; margin-top: 20px;">
+                <button class="error-button" onclick="hideConfirmPopup()" style="background: #6b7280;">Cancel</button>
+                <button class="error-button" onclick="confirmAction()" style="background: #3b82f6;">OK</button>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>

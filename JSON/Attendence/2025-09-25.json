@@ -1,0 +1,121 @@
+[
+  {
+    "student_id": "BBHCF048",
+    "name": "Mr. Pranam R Betrabet",
+    "checkin": "2025-09-25T14:58:25.806811",
+    "checkout": "",
+    "delay": "N/A"
+  },
+  {
+    "student_id": "BBHCFN007",
+    "name": "Mr. Nithyananda",
+    "checkin": "2025-09-25T14:58:26.777493",
+    "checkout": "",
+    "delay": "N/A"
+  },
+  {
+    "student_id": "BBHCFN018",
+    "name": "Mr. Sharath Kharvi",
+    "checkin": "2025-09-25T14:58:42.128808",
+    "checkout": "",
+    "delay": "N/A"
+  },
+  {
+    "student_id": "BBHCFN008",
+    "name": "Mr. Rakshith K",
+    "checkin": "2025-09-25T14:58:44.506621",
+    "checkout": "",
+    "delay": "N/A"
+  },
+  {
+    "student_id": "BBHCFN019",
+    "name": "Mr. Rajesh Shetty",
+    "checkin": "2025-09-25T15:00:57.054523",
+    "checkout": "",
+    "delay": "N/A"
+  },
+  {
+    "student_id": "BBHCF002",
+    "name": "Dr. Chethan Shetty K",
+    "checkin": "2025-09-25T15:01:02.705495",
+    "checkout": "",
+    "delay": "N/A"
+  },
+  {
+    "student_id": "BBHCFN003",
+    "name": "Mr. Sudheendra K. S.",
+    "checkin": "2025-09-25T15:04:21.379929",
+    "checkout": "",
+    "delay": "N/A"
+  },
+  {
+    "student_id": "BBHCFN021",
+    "name": "Mr. Nitheesha",
+    "checkin": "2025-09-25T15:09:42.103081",
+    "checkout": "",
+    "delay": "N/A"
+  },
+  {
+    "student_id": "BBHCF006",
+    "name": "Mr. Rajesh Shetty",
+    "checkin": "2025-09-25T15:11:04.765435",
+    "checkout": "",
+    "delay": "N/A"
+  },
+  {
+    "student_id": "BBHCF042",
+    "name": "Mrs. Wilma Sharal Cornelio",
+    "checkin": "2025-09-25T16:34:32.064792",
+    "checkout": "",
+    "delay": "N/A"
+  },
+  {
+    "student_id": "BBHCF043",
+    "name": "Mrs. Jayalakshmi K",
+    "checkin": "2025-09-25T16:34:38.993003",
+    "checkout": "",
+    "delay": "N/A"
+  },
+  {
+    "student_id": "BBHCF030",
+    "name": "Mrs. Deepika G",
+    "checkin": "2025-09-25T16:34:51.603950",
+    "checkout": "",
+    "delay": "N/A"
+  },
+  {
+    "student_id": "BBHCF022",
+    "name": "Mr. Vinod Kumar K",
+    "checkin": "2025-09-25T16:36:01.564935",
+    "checkout": "",
+    "delay": "N/A"
+  },
+  {
+    "student_id": "BBHCF037",
+    "name": "Dr. Deepa",
+    "checkin": "2025-09-25T16:36:01.569659",
+    "checkout": "",
+    "delay": "N/A"
+  },
+  {
+    "student_id": "BBHCF001",
+    "name": "Prof. Dr. K. Umesh Shetty",
+    "checkin": "2025-09-25T16:36:24.476987",
+    "checkout": "",
+    "delay": "N/A"
+  },
+  {
+    "student_id": "BBHCFN014",
+    "name": "Mr. Sachin Kumar",
+    "checkin": "2025-09-25T16:43:22.431734",
+    "checkout": "",
+    "delay": "N/A"
+  },
+  {
+    "student_id": "BBHCF003",
+    "name": "Mr. Rakshith Rao",
+    "checkin": "2025-09-25T16:43:33.518176",
+    "checkout": "",
+    "delay": "N/A"
+  }
+]

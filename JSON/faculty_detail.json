@@ -502,5 +502,11 @@
         "designation": "Sanitary Worker",
         "department": "Support Staff",
         "category": "Non-Teaching Faculty"
+    },
+    "BBHCFN030": {
+        "name": "Mrs. Kamala",
+        "designation": "Sanitary Worker",
+        "department": "Support Staff",
+        "category": "Non-Teaching Faculty"
     }
 }

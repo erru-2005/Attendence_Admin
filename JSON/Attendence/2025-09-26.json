@@ -1,0 +1,282 @@
+[
+  {
+    "student_id": "BBHCFN008",
+    "name": "Mr. Rakshith K",
+    "checkin": "2025-09-26T10:41:28.829278",
+    "checkout": "2025-09-26T18:12:23.428497",
+    "delay": "01:26:29"
+  },
+  {
+    "student_id": "BBHCFN007",
+    "name": "Mr. Nithyananda",
+    "checkin": "2025-09-26T10:41:28.848518",
+    "checkout": "2025-09-26T16:35:37.555931",
+    "delay": "01:35:56"
+  },
+  {
+    "student_id": "BBHCF003",
+    "name": "Mr. Rakshith Rao",
+    "checkin": "2025-09-26T10:42:05.373123",
+    "checkout": "2025-09-26T16:43:39.825251",
+    "delay": "01:17:05"
+  },
+  {
+    "student_id": "BBHCFN021",
+    "name": "Mr. Nitheesha",
+    "checkin": "2025-09-26T10:42:12.680924",
+    "checkout": "2025-09-26T16:32:28.451937",
+    "delay": "02:22:14"
+  },
+  {
+    "student_id": "BBHCFN019",
+    "name": "Mr. Rajesh Shetty",
+    "checkin": "2025-09-26T10:42:28.341469",
+    "checkout": "2025-09-26T16:30:58.727487",
+    "delay": "02:12:28"
+  },
+  {
+    "student_id": "BBHCFN018",
+    "name": "Mr. Sharath Kharvi",
+    "checkin": "2025-09-26T10:42:29.420527",
+    "checkout": "2025-09-26T17:11:41.052830",
+    "delay": "02:15:48"
+  },
+  {
+    "student_id": "BBHCF048",
+    "name": "Mr. Pranam R Betrabet",
+    "checkin": "2025-09-26T11:13:59.056820",
+    "checkout": "2025-09-26T16:30:54.303312",
+    "delay": "01:48:59"
+  },
+  {
+    "student_id": "BBHCFN020",
+    "name": "Mr. Ramesh Mogaveera",
+    "checkin": "2025-09-26T11:13:59.950243",
+    "checkout": "2025-09-26T16:41:18.671990",
+    "delay": "03:17:41"
+  },
+  {
+    "student_id": "BBHCF001",
+    "name": "Prof. Dr. K. Umesh Shetty",
+    "checkin": "2025-09-26T13:40:45.784655",
+    "checkout": "2025-09-26T18:08:47.826067",
+    "delay": "04:15:46"
+  },
+  {
+    "student_id": "BBHCFN003",
+    "name": "Mr. Sudheendra K. S.",
+    "checkin": "2025-09-26T13:48:25.511686",
+    "checkout": "2025-09-26T16:39:40.250551",
+    "delay": "05:08:46"
+  },
+  {
+    "student_id": "BBHCF053",
+    "name": "Mr. Ranjith T N",
+    "checkin": "2025-09-26T13:59:50.343360",
+    "checkout": "2025-09-26T16:41:05.351711",
+    "delay": "04:34:50"
+  },
+  {
+    "student_id": "BBHCF002",
+    "name": "Dr. Chethan Shetty K",
+    "checkin": "2025-09-26T13:59:51.412517",
+    "checkout": "2025-09-26T16:46:42.963759",
+    "delay": "04:34:51"
+  },
+  {
+    "student_id": "BBHCFN014",
+    "name": "Mr. Sachin Kumar",
+    "checkin": "2025-09-26T14:01:52.408566",
+    "checkout": "2025-09-26T16:37:16.564046",
+    "delay": "06:09:35"
+  },
+  {
+    "student_id": "BBHCF011",
+    "name": "Mr. Yogeesh",
+    "checkin": "2025-09-26T14:06:28.201097",
+    "checkout": "2025-09-26T17:18:19.891091",
+    "delay": "04:41:28"
+  },
+  {
+    "student_id": "BBHCF026",
+    "name": "Mr. Hareesha B",
+    "checkin": "2025-09-26T14:15:54.682486",
+    "checkout": "2025-09-26T16:51:08.979059",
+    "delay": "04:50:55"
+  },
+  {
+    "student_id": "BBHCF024",
+    "name": "Mrs. Nanda Rai",
+    "checkin": "2025-09-26T14:16:09.889100",
+    "checkout": "2025-09-26T16:37:36.256237",
+    "delay": "04:51:10"
+  },
+  {
+    "student_id": "BBHCFN013",
+    "name": "Mrs. Mamatha Shetty",
+    "checkin": "2025-09-26T14:32:29.361356",
+    "checkout": "",
+    "delay": "N/A"
+  },
+  {
+    "student_id": "BBHCFN001",
+    "name": "Ms. Gayathri Shet",
+    "checkin": "2025-09-26T14:37:43.174001",
+    "checkout": "2025-09-26T17:10:13.917416",
+    "delay": "05:27:29"
+  },
+  {
+    "student_id": "BBHCF018",
+    "name": "Mrs. Joseline Renita D Almeida",
+    "checkin": "2025-09-26T14:47:18.945022",
+    "checkout": "",
+    "delay": "N/A"
+  },
+  {
+    "student_id": "BBHCF044",
+    "name": "Mrs. Pavithra",
+    "checkin": "2025-09-26T14:53:20.413732",
+    "checkout": "",
+    "delay": "N/A"
+  },
+  {
+    "student_id": "BBHCF037",
+    "name": "Dr. Deepa",
+    "checkin": "2025-09-26T16:04:27.503819",
+    "checkout": "2025-09-26T16:34:44.761417",
+    "delay": "06:39:28"
+  },
+  {
+    "student_id": "BBHCF004",
+    "name": "Mr. Giriraj Bhat",
+    "checkin": "2025-09-26T16:05:12.830341",
+    "checkout": "2025-09-26T17:19:43.240484",
+    "delay": "06:40:13"
+  },
+  {
+    "student_id": "BBHCF032",
+    "name": "Mrs. Swathi G Rao",
+    "checkin": "2025-09-26T16:06:23.439342",
+    "checkout": "2025-09-26T17:00:37.757500",
+    "delay": "06:41:23"
+  },
+  {
+    "student_id": "BBHCF035",
+    "name": "Mrs. Praveena M Poojary",
+    "checkin": "2025-09-26T16:06:25.912467",
+    "checkout": "2025-09-26T16:36:10.800266",
+    "delay": "06:41:26"
+  },
+  {
+    "student_id": "BBHCF031",
+    "name": "Ms. Ravina C Poojari",
+    "checkin": "2025-09-26T16:09:13.990263",
+    "checkout": "2025-09-26T17:00:36.485711",
+    "delay": "06:44:14"
+  },
+  {
+    "student_id": "BBHCF055",
+    "name": "Mr. Mahesh Naik",
+    "checkin": "2025-09-26T16:14:12.774397",
+    "checkout": "2025-09-26T17:06:03.034062",
+    "delay": "06:49:13"
+  },
+  {
+    "student_id": "BBHCFN002",
+    "name": "Mrs. Sureka",
+    "checkin": "2025-09-26T16:26:53.891958",
+    "checkout": "2025-09-26T16:32:13.298381",
+    "delay": "07:54:41"
+  },
+  {
+    "student_id": "BBHCF125",
+    "name": "Mr.Shreekanth",
+    "checkin": "2025-09-26T17:04:36.848266",
+    "checkout": "2025-09-26T17:04:58.521227",
+    "delay": "07:39:37"
+  },
+  {
+    "student_id": "BBHCFN007",
+    "name": "Mr. Nithyananda",
+    "checkin": "2025-09-26T17:04:40.360043",
+    "checkout": "2025-09-26T17:05:32.550874",
+    "delay": "01:35:56"
+  },
+  {
+    "student_id": "BBHCF053",
+    "name": "Mr. Ranjith T N",
+    "checkin": "2025-09-26T17:04:41.120423",
+    "checkout": "2025-09-26T17:05:00.315410",
+    "delay": "04:34:50"
+  },
+  {
+    "student_id": "BBHCFN021",
+    "name": "Mr. Nitheesha",
+    "checkin": "2025-09-26T17:04:47.628901",
+    "checkout": "2025-09-26T17:04:58.511738",
+    "delay": "02:22:14"
+  },
+  {
+    "student_id": "BBHCF053",
+    "name": "Mr. Ranjith T N",
+    "checkin": "2025-09-26T17:24:01.922098",
+    "checkout": "2025-09-26T17:27:11.977116",
+    "delay": "04:34:50"
+  },
+  {
+    "student_id": "BBHCFN019",
+    "name": "Mr. Rajesh Shetty",
+    "checkin": "2025-09-26T17:24:09.519073",
+    "checkout": "2025-09-26T17:36:45.083467",
+    "delay": "02:12:28"
+  },
+  {
+    "student_id": "BBHCF053",
+    "name": "Mr. Ranjith T N",
+    "checkin": "2025-09-26T17:28:38.234974",
+    "checkout": "2025-09-26T17:33:42.541128",
+    "delay": "04:34:50"
+  },
+  {
+    "student_id": "BBHCF048",
+    "name": "Mr. Pranam R Betrabet",
+    "checkin": "2025-09-26T17:28:51.158520",
+    "checkout": "2025-09-26T17:33:42.389456",
+    "delay": "01:48:59"
+  },
+  {
+    "student_id": "BBHCFN019",
+    "name": "Mr. Rajesh Shetty",
+    "checkin": "2025-09-26T18:28:58.734201",
+    "checkout": "",
+    "delay": "02:12:28"
+  },
+  {
+    "student_id": "BBHCF047",
+    "name": "Ms. Rashmi Gavadi",
+    "checkin": "2025-09-26T18:28:58.744558",
+    "checkout": "",
+    "delay": "N/A"
+  },
+  {
+    "student_id": "BBHCF052",
+    "name": "Mr. Mahesh Poojari",
+    "checkin": "2025-09-26T18:28:58.751844",
+    "checkout": "",
+    "delay": "N/A"
+  },
+  {
+    "student_id": "BBHCF051",
+    "name": "Ms. Shivani Adiga",
+    "checkin": "2025-09-26T18:29:01.664732",
+    "checkout": "",
+    "delay": "N/A"
+  },
+  {
+    "student_id": "BBHCFN014",
+    "name": "Mr. Sachin Kumar",
+    "checkin": "2025-09-26T18:29:33.915853",
+    "checkout": "",
+    "delay": "06:09:35"
+  }
+]

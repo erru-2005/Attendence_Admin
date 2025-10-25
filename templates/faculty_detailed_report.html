@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faculty Detailed Report - Dr. B. B. Hegde First Grade College</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .faculty-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .delay-badge {
+            transition: all 0.3s ease;
+        }
+        .delay-badge:hover {
+            transform: scale(1.05);
+        }
+        .table-row:hover {
+            background-color: #f8fafc;
+        }
+        .print-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .export-button {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white/90 backdrop-blur border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col md:flex-row md:items-center md:gap-4 gap-3">
+            <div class="flex md:block items-center justify-center">
+                <img src="/static/images/logo-removebg-preview.png" alt="College Logo"
+                    class="h-16 w-16 md:h-20 md:w-20 object-contain" />
+            </div>
+            <div class="min-w-0 text-center md:text-left">
+                <h1 class="text-2xl md:text-3xl font-bold text-slate-900 leading-tight md:truncate">Dr. B. B. Hegde
+                    First Grade College, Kundapura</h1>
+                <div class="h-0.5 bg-slate-200 my-1 mx-auto md:mx-0 w-11/12 md:w-full"></div>
+                <p class="text-xs sm:text-sm text-slate-600">A Unit of Coondapur Education Society (R)</p>
+            </div>
+            <div class="ml-auto flex justify-end w-full md:w-auto mt-2 md:mt-0 self-end">
+                <div class="flex items-end gap-4 text-xs sm:text-sm">
+                    <a href="/" class="inline-flex items-center gap-2 text-slate-600 hover:text-slate-800 font-medium">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4">
+                            <path d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/>
+                        </svg>
+                        Back to Dashboard
+                    </a>
+                    <span class="text-slate-600 hidden sm:inline">Welcome, admin</span>
+                    <a href="/logout" class="text-rose-600 hover:text-rose-700 font-medium">Logout</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Report Header -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h2 class="text-3xl font-bold text-gray-900 mb-2">Faculty Detailed Report</h2>
+                    <div class="flex items-center space-x-6 text-gray-600">
+                        <div class="flex items-center">
+                            <i class="fas fa-calendar-alt mr-2"></i>
+                            <span id="reportMonthYear"></span>
+                        </div>
+                        <div class="flex items-center">
+                            <i class="fas fa-user mr-2"></i>
+                            <span id="reportFaculty"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex space-x-3">
+                    <button onclick="window.print()" class="print-button text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity">
+                        <i class="fas fa-print mr-2"></i>Print Report
+                    </button>
+                    <button onclick="exportToExcel()" class="export-button text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity">
+                        <i class="fas fa-file-excel mr-2"></i>Export Excel
+                    </button>
+                    <button onclick="exportToPDF()" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors">
+                        <i class="fas fa-file-pdf mr-2"></i>Export PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Faculty Reports -->
+        <div id="facultyReports" class="space-y-8">
+            <!-- Faculty reports will be populated here -->
+        </div>
+
+        <!-- Loading Spinner -->
+        <div id="loadingSpinner" class="flex justify-center items-center py-12">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+        </div>
+
+        <!-- Error Message -->
+        <div id="errorMessage" class="hidden bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-exclamation-circle text-red-400"></i>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-red-800">Error Loading Report</h3>
+                    <div class="mt-2 text-sm text-red-700">
+                        <p id="errorText">Failed to load faculty detailed report. Please try again.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Faculty Card Template -->
+    <template id="facultyCardTemplate">
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+            <!-- Faculty Header -->
+            <div class="faculty-card p-6">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h3 class="text-2xl font-bold" id="facultyName">Faculty Name</h3>
+                        <p class="text-lg opacity-90" id="facultyId">Faculty ID</p>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-sm opacity-90">Total Delay</div>
+                        <div class="text-2xl font-bold" id="totalDelay">00:00:00</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Faculty Data Table -->
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check In Time</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check Out Time</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Delay</th>
+                        </tr>
+                    </thead>
+                    <tbody id="facultyTableBody" class="bg-white divide-y divide-gray-200">
+                        <!-- Table rows will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </template>
+
+    <!-- Table Row Template -->
+    <template id="tableRowTemplate">
+        <tr class="table-row">
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900" id="rowDate">Date</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" id="rowCheckin">Check In</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" id="rowCheckout">Check Out</td>
+            <td class="px-6 py-4 whitespace-nowrap">
+                <span class="delay-badge inline-flex px-2 py-1 text-xs font-semibold rounded-full" id="rowDelay">Delay</span>
+            </td>
+        </tr>
+    </template>
+
+    <script>
+        // Get URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const month = urlParams.get('month');
+        const year = urlParams.get('year');
+        const faculty = urlParams.get('faculty');
+
+        // Set report header information
+        document.getElementById('reportMonthYear').textContent = `${getMonthName(month)} ${year}`;
+        document.getElementById('reportFaculty').textContent = faculty === 'all' ? 'All Faculty' : faculty;
+
+        // Load faculty detailed report data
+        async function loadFacultyDetailedReport() {
+            try {
+                const response = await fetch(`/api/faculty-detailed-report?month=${month}&year=${year}&faculty=${faculty}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayFacultyReports(data.data);
+                } else {
+                    showError(data.error || 'Failed to load faculty detailed report');
+                }
+            } catch (error) {
+                console.error('Error loading faculty detailed report:', error);
+                showError('Network error. Please check your connection and try again.');
+            }
+        }
+
+        // Display faculty reports
+        function displayFacultyReports(facultyReports) {
+            const container = document.getElementById('facultyReports');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            
+            loadingSpinner.style.display = 'none';
+            
+            if (facultyReports.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-white rounded-lg shadow-lg p-8 text-center">
+                        <i class="fas fa-inbox text-4xl text-gray-400 mb-4"></i>
+                        <h3 class="text-lg font-medium text-gray-900 mb-2">No Data Found</h3>
+                        <p class="text-gray-600">No attendance records found for the selected criteria.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            facultyReports.forEach(facultyReport => {
+                const facultyCard = createFacultyCard(facultyReport);
+                container.appendChild(facultyCard);
+            });
+        }
+
+        // Create faculty card
+        function createFacultyCard(facultyReport) {
+            const template = document.getElementById('facultyCardTemplate');
+            const card = template.content.cloneNode(true);
+            
+            // Set faculty information
+            card.getElementById('facultyName').textContent = facultyReport.faculty_name;
+            card.getElementById('facultyId').textContent = facultyReport.faculty_id;
+            card.getElementById('totalDelay').textContent = facultyReport.total_delay;
+            
+            // Populate table
+            const tableBody = card.getElementById('facultyTableBody');
+            facultyReport.daily_data.forEach(dayData => {
+                const row = createTableRow(dayData);
+                tableBody.appendChild(row);
+            });
+            
+            return card;
+        }
+
+        // Create table row
+        function createTableRow(dayData) {
+            const template = document.getElementById('tableRowTemplate');
+            const row = template.content.cloneNode(true);
+            
+            // Format date
+            const date = new Date(dayData.date);
+            const formattedDate = date.toLocaleDateString('en-GB', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
+            
+            row.getElementById('rowDate').textContent = formattedDate;
+            row.getElementById('rowCheckin').textContent = dayData.checkin;
+            row.getElementById('rowCheckout').textContent = dayData.checkout;
+            
+            // Style delay badge
+            const delayBadge = row.getElementById('rowDelay');
+            delayBadge.textContent = dayData.delay;
+            
+            // Apply delay-based styling
+            if (dayData.checkin === 'Not recorded' && dayData.checkout === 'Not recorded') {
+                // Both check-in and check-out are not recorded - show as Absent
+                delayBadge.textContent = 'Absent';
+                delayBadge.className += ' bg-red-100 text-red-800 font-semibold';
+            } else if (dayData.delay === '00:00:00') {
+                delayBadge.className += ' bg-green-100 text-green-800';
+            } else if (dayData.delay === 'Not recorded' || dayData.checkin === 'Not recorded') {
+                delayBadge.className += ' bg-red-100 text-red-800';
+            } else {
+                // Parse delay to determine color
+                const delaySeconds = parseDelayToSeconds(dayData.delay);
+                if (delaySeconds <= 3600) { // 1 hour
+                    delayBadge.className += ' bg-green-100 text-green-800';
+                } else if (delaySeconds <= 7200) { // 2 hours
+                    delayBadge.className += ' bg-yellow-100 text-yellow-800';
+                } else {
+                    delayBadge.className += ' bg-red-100 text-red-800';
+                }
+            }
+            
+            return row;
+        }
+
+        // Parse delay string to seconds
+        function parseDelayToSeconds(delayStr) {
+            if (!delayStr || delayStr === '00:00:00' || delayStr === 'Not recorded') {
+                return 0;
+            }
+            
+            const parts = delayStr.split(':');
+            if (parts.length === 3) {
+                const hours = parseInt(parts[0]);
+                const minutes = parseInt(parts[1]);
+                const seconds = parseInt(parts[2]);
+                return hours * 3600 + minutes * 60 + seconds;
+            }
+            return 0;
+        }
+
+        // Get month name
+        function getMonthName(month) {
+            const months = [
+                'January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'
+            ];
+            return months[parseInt(month) - 1] || month;
+        }
+
+        // Show error message
+        function showError(message) {
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            const errorMessage = document.getElementById('errorMessage');
+            const errorText = document.getElementById('errorText');
+            
+            loadingSpinner.style.display = 'none';
+            errorText.textContent = message;
+            errorMessage.classList.remove('hidden');
+        }
+
+        // Export functions
+        function exportToExcel() {
+            window.location.href = `/api/faculty-detailed-report/excel?month=${month}&year=${year}&faculty=${faculty}`;
+        }
+
+        function exportToPDF() {
+            window.location.href = `/api/faculty-detailed-report/pdf?month=${month}&year=${year}&faculty=${faculty}`;
+        }
+
+        // Load report when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadFacultyDetailedReport();
+        });
+    </script>
+</body>
+</html>

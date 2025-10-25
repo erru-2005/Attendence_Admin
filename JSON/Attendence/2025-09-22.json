@@ -1,0 +1,30 @@
+[
+  {
+    "student_id": "BBHCF048",
+    "name": "Mr. Pranam R Betrabet",
+    "checkin": "2025-09-22T15:41:03.190071",
+    "checkout": "",
+    "delay": "N/A"
+  },
+  {
+    "student_id": "BBHCF049",
+    "name": "Mrs. Nirmala B",
+    "checkin": "2025-09-22T16:17:08.360368",
+    "checkout": "",
+    "delay": "N/A"
+  },
+  {
+    "student_id": "BBHCF038",
+    "name": "Mrs. Revathi D",
+    "checkin": "2025-09-22T16:19:07.627727",
+    "checkout": "",
+    "delay": "N/A"
+  },
+  {
+    "student_id": "BBHCF021",
+    "name": "Mr. Kishor Krishna Marakala",
+    "checkin": "2025-09-22T17:52:43.334891",
+    "checkout": "",
+    "delay": "N/A"
+  }
+]
