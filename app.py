@@ -2042,8 +2042,6 @@ def api_faculty_detailed_report_excel():
         from openpyxl.utils import get_column_letter
         
         wb = Workbook()
-        ws = wb.active
-        ws.title = f"Faculty Detailed Report {month}-{year}"
         
         # Convert month number to month name
         month_names = {
@@ -2053,17 +2051,38 @@ def api_faculty_detailed_report_excel():
         }
         month_name = month_names.get(month.zfill(2), month)
         
-        # Add top heading for the entire report
-        top_heading = ws.cell(row=1, column=1, value=f"DETAILED FACULTY REPORT - {month_name}")
-        top_heading.font = Font(bold=True, size=16, color="000000")
-        top_heading.alignment = Alignment(horizontal="center", vertical="center")
-        ws.merge_cells(f'A1:D1')  # Merge across all columns
-        ws.row_dimensions[1].height = 25
+        # Handle single faculty vs all faculty differently
+        if faculty == 'all':
+            # Remove default sheet for multiple sheets
+            wb.remove(wb.active)
+        else:
+            # Use single sheet for individual faculty
+            ws = wb.active
+            ws.title = f"Faculty Report {month}-{year}"
+            
+            # Add top heading for the entire report (single faculty)
+            top_heading = ws.cell(row=1, column=1, value=f"DETAILED FACULTY REPORT - {month_name}")
+            top_heading.font = Font(bold=True, size=16, color="000000")
+            top_heading.alignment = Alignment(horizontal="center", vertical="center")
+            ws.merge_cells(f'A1:D1')  # Merge across all columns
+            ws.row_dimensions[1].height = 25
         
         # Process each faculty member
-        current_row = 2
-        
         for faculty_id in target_faculty:
+            # Create a new sheet for each faculty when "all" is selected
+            if faculty == 'all':
+                ws = wb.create_sheet(title=faculty_id)
+                current_row = 1
+                
+                # Add top heading for this faculty's sheet
+                top_heading = ws.cell(row=current_row, column=1, value=f"DETAILED FACULTY REPORT - {month_name}")
+                top_heading.font = Font(bold=True, size=16, color="000000")
+                top_heading.alignment = Alignment(horizontal="center", vertical="center")
+                ws.merge_cells(f'A{current_row}:D{current_row}')
+                ws.row_dimensions[current_row].height = 25
+                current_row += 1
+            else:
+                current_row = 2
             faculty_info = faculty_details.get(faculty_id, {})
             faculty_name = faculty_info.get('name', '')
             
@@ -2215,9 +2234,11 @@ def api_faculty_detailed_report_excel():
             current_row += 2  # Add spacing between faculty members
         
         # Set column widths - optimized for better readability
+        # Apply to all sheets in the workbook
         column_widths = [20, 22, 22, 18]  # Date, Check In, Check Out, Delay (increased for better fit)
-        for i, width in enumerate(column_widths, 1):
-            ws.column_dimensions[chr(64 + i)].width = width
+        for sheet in wb.worksheets:
+            for i, width in enumerate(column_widths, 1):
+                sheet.column_dimensions[chr(64 + i)].width = width
         
         # Save to BytesIO
         from io import BytesIO
@@ -2433,9 +2454,10 @@ def api_faculty_detailed_report_pdf():
             
             # Create table with optimized A4 width (595 points total)
             # Date: 120, Check In: 150, Check Out: 150, Delay: 120 = 540 points (leaving margins)
-            table = Table(table_data, colWidths=[120, 150, 150, 120])
+            # repeatRows=1 ensures header is repeated on each page
+            table = Table(table_data, colWidths=[120, 150, 150, 120], repeatRows=1)
             table.setStyle(TableStyle([
-                # Header styling with white borders
+                # Header styling with white borders (applies to all header rows including repeated ones)
                 ('BACKGROUND', (0, 0), (-1, 0), colors.black),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
                 ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
